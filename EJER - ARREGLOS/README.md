@@ -188,7 +188,7 @@ private class VentaResultado {
 try (BufferedWriter writer = new BufferedWriter(new FileWriter(nombreArchivo))) {
     // Código de escritura
 }
-🛠️ Métodos Principales
+Métodos Principales
 Método buscar_ventas() / buscarVentas()
 Parámetros:
 
@@ -224,7 +224,7 @@ estacional: 8 ventas (por temporadas)
 
 aleatorio: 6 ventas (distribuidas)
 
-⚠️ Manejo de Errores
+Manejo de Errores
 Errores Comunes y Soluciones
 Error	                                Causa	                            Solución
 "Mes no válido"     	            Nombre mal escrito	                Usar nombres exactos o números 1-12
@@ -256,7 +256,7 @@ text
 2. Buscar ventas por departamento "Juguetería"
 3. Eliminar todas las ventas encontradas
 4. Restaurar datos originales si es necesario
-🔄 Comparación de Sintaxis
+Comparación de Sintaxis
 Creación de Matriz
 python
 # Python
@@ -287,7 +287,7 @@ java
 // Java
 System.out.printf("%-12s %-12s $%-14,.2f\n", 
     venta.mes, venta.departamento, venta.monto);
-🎯 Mejores Prácticas Implementadas
+Mejores Prácticas Implementadas
 Python
 Docstrings: Documentación completa de métodos
 
@@ -306,7 +306,7 @@ Try-with-resources: Manejo automático de recursos
 
 Formateo consistente: Uso de printf para salida
 
-📚 Recursos Adicionales
+Recursos Adicionales
 Para la Versión Python
 Módulos utilizados: time para timestamps
 
@@ -321,7 +321,7 @@ Estructuras de datos: ArrayList, HashMap, arrays
 
 Características: Clases internas, formateo con String.format
 
-🤝 Contribución
+Contribución
 Mejoras Posibles
 Interfaz gráfica: Versión con GUI usando Tkinter (Python) o Swing (Java)
 
