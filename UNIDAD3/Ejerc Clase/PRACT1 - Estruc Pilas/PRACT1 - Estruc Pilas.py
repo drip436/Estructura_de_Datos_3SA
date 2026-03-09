@@ -116,14 +116,16 @@ class PilaGUI:
         btn_frame = tk.Frame(self.root, bg=self.BG)
         btn_frame.pack(pady=10)
         self._make_btn(btn_frame, "PUSH", self.BORDER, self.BTN_PUSH,
-                       self._on_push).grid(row=0, column=0, padx=6)
-        self.btn_eliminar = self._make_btn(btn_frame, "ELIMINAR SELECCIONADO",
-                                            self.ACCENT2, self.BTN_POP, self._on_eliminar_seleccionado)
-        self.btn_eliminar.grid(row=0, column=1, padx=6)
+                       self._on_push).grid(row=0, column=0, padx=6, pady=4)
+        self._make_btn(btn_frame, "POP (tope)", self.ACCENT2, self.BTN_POP,
+                       self._on_pop).grid(row=0, column=1, padx=6, pady=4)
         self._make_btn(btn_frame, "LLENAR", self.ACCENT3, self.BTN_FILL,
-                       self._on_llenar).grid(row=0, column=2, padx=6)
-        self._make_btn(btn_frame, "VACIAR", self.PURPLE, self.BTN_CLEAR,
-                       self._on_vaciar).grid(row=0, column=3, padx=6)
+                       self._on_llenar).grid(row=0, column=2, padx=6, pady=4)
+        self._make_btn(btn_frame, "VACIAR", "#888888", "#1a1a1a",
+                       self._on_vaciar).grid(row=0, column=3, padx=6, pady=4)
+        self.btn_eliminar = self._make_btn(btn_frame, "ELIMINAR SELECCIONADO (clic en elemento)",
+                                            self.PURPLE, "#1a001a", self._on_eliminar_seleccionado)
+        self.btn_eliminar.grid(row=1, column=0, columnspan=4, padx=6, pady=4, sticky="ew")
 
         log_frame = tk.Frame(self.root, bg=self.PANEL_BG,
                               highlightthickness=1, highlightbackground=self.TEXT_DIM)
@@ -387,6 +389,31 @@ class PilaGUI:
             self._animating = False
 
         fase1()
+
+    # ── POP normal (elimina tope) ─────────────
+    def _on_pop(self):
+        if self._animating:
+            return
+        if self.pila.esta_vacia():
+            self._log("UNDERFLOW -- La pila esta vacia.", self.ACCENT2)
+            import tkinter.messagebox as mb
+            mb.showwarning("Pila Vacia", "La pila esta vacia.\nNo hay elementos para eliminar.")
+            return
+        self._animating = True
+        snap_antes = list(self.pila.elementos)
+        idx = self.pila.tamanio() - 1
+        valor = self.pila.pop()
+        flashes = [True, False, True, False, True, False]
+        def anim(i=0):
+            if i >= len(flashes):
+                self._draw_stack()
+                self._log(f"POP -> '{valor}'  |  Quedan: {self.pila.tamanio()}", self.ACCENT2)
+                self._animating = False
+                return
+            color = "#4d0000" if flashes[i] else self.BLOCK_FILL
+            self._draw_stack(override_elems=snap_antes, highlight_idx=idx, highlight_color=color)
+            self.root.after(100, lambda: anim(i+1))
+        anim()
 
     # ── PUSH ──────────────────────────────────
     def _on_push(self):
