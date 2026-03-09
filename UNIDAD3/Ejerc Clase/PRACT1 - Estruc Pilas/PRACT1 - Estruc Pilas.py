@@ -1,3 +1,4 @@
+# PRACTICA 1 (Hecho en clase)
 import tkinter as tk
 from tkinter import messagebox
 import random
