@@ -8,7 +8,7 @@ from Clase_Pila import Pila as Pila
 # ─────────────────────────────────────────────
 #  Pedir número de discos al usuario
 # ─────────────────────────────────────────────
-MAX_DISCOS = 15  # Con 15 discos se realizan 32.767 movimientos
+MAX_DISCOS = 15  # Con 15 discos se realizan 32.767 movimientos..
 
 def pedir_num_discos() -> int:
     """

@@ -1,6 +1,6 @@
 # ============================================================
 #  PROGRAMA 1: Evaluador de expresiones Postfija / Prefija
-#  usando una clase Pila implementada desde cero
+#  usando una clase Pila implementada desde cero.
 # ============================================================
 
 #Invoca el fichero con la clase Pila

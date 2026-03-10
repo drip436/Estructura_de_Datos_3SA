@@ -1,4 +1,4 @@
-# Calse Pila que conecta con los ficheros Expresiones_pila.py y Torres_hanoi.py de la actividad ADA1-Pilas
+# Calse Pila que conecta con los ficheros Expresiones_pila.py y Torres_hanoi.py de la actividad ADA1-Pilas.
 class Pila:
     """Implementación de una Pila (Stack) con lista."""
 
