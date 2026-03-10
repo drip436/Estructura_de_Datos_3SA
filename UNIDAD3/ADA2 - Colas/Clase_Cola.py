@@ -1,5 +1,6 @@
 from collections import deque
 
+# Clase Cola (conecta con los dos ficheros Suma_de_dos_colas.py y Sistemas_de_Atencion.py de la actividad ADA2-COLAS)
 class Cola:
     def __init__(self):
         self._datos = deque()
