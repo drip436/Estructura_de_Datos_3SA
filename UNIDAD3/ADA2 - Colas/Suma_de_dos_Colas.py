@@ -1,7 +1,7 @@
 from collections import deque
 #Importacion de Clase Cola
 from Clase_Cola import Cola as Cola
-
+#.
 def sumar_colas(cola_a: Cola, cola_b: Cola) -> Cola:
     if cola_a.tamanio() != cola_b.tamanio():
         raise ValueError("Las colas deben tener el mismo número de elementos")

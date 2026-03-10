@@ -1,7 +1,7 @@
 from collections import deque
 #Importacion de Clase Cola
 from Clase_Cola import Cola as Cola
-
+#.
 
 SERVICIOS = {
     1: "Consultas generales",
