@@ -7,12 +7,10 @@ Actividad **ADA2-COLAS** y **ADA-PILAS**. Implementación de las estructuras de 
 ## Archivos del proyecto
 
 ```
-📁 proyecto/
+proyecto/
 ├── Clase_Cola.py               # Clase Cola (base para los ejercicios 1 y 2)
 ├── Suma_de_dos_colas.py        # Ejercicio 1 – Suma de colas
 ├── Sistemas_de_Atencion.py     # Ejercicio 2 – Sistema de atención
-├── Clase_Pila.py               # Clase Pila (base para Torres de Hanoi)
-└── Torres_Hanoi.py             # Ejercicio 3 – Torres de Hanoi
 ```
 
 ---
@@ -178,8 +176,6 @@ Paso  1: Mover disco 1 de 'Origen' → 'Destino'
 ```
 Clase_Cola.py  ◄──  Suma_de_dos_colas.py
                ◄──  Sistemas_de_Atencion.py
-
-Clase_Pila.py  ◄──  Torres_Hanoi.py
 ```
 
-> Los archivos `Clase_Cola.py` y `Clase_Pila.py` deben estar en la **misma carpeta** que los programas que los importan.
+> Los archivos `Clase_Cola.py` debe estar en la **misma carpeta** que los programas que los importan.
