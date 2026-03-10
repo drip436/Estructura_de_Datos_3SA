@@ -3,34 +3,8 @@
 #  usando una clase Pila implementada desde cero
 # ============================================================
 
-class Pila:
-    """Implementación de una Pila (Stack) con lista."""
-
-    def __init__(self):
-        self._datos = []
-
-    def apilar(self, elemento):
-        self._datos.append(elemento)
-
-    def desapilar(self):
-        if self.esta_vacia():
-            raise IndexError("La pila está vacía.")
-        return self._datos.pop()
-
-    def tope(self):
-        if self.esta_vacia():
-            raise IndexError("La pila está vacía.")
-        return self._datos[-1]
-
-    def esta_vacia(self):
-        return len(self._datos) == 0
-
-    def __len__(self):
-        return len(self._datos)
-
-    def __repr__(self):
-        return f"Pila({self._datos})"
-
+#Invoca el fichero con la clase Pila
+from Clase_Pila import Pila as Pila
 
 # ─────────────────────────────────────────────
 #  Operadores soportados
