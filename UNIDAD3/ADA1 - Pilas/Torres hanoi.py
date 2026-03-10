@@ -1,40 +1,19 @@
 # ============================================================
-#  PROGRAMA 2: Torres de Hanoi
+#  PROGRAMA 2: Torres de Hanoi para 3 discos
 #  usando la clase Pila
 # ============================================================
 
+#Invoca el fichero con la clase Pila
 from Clase_Pila import Pila as Pila
-
-# ─────────────────────────────────────────────
-#  Pedir número de discos al usuario
-# ─────────────────────────────────────────────
-MAX_DISCOS = 15  # Con 15 discos se realizan 32.767 movimientos..
-
-def pedir_num_discos() -> int:
-    """
-    Solicita al usuario un número de discos válido entre 1 y MAX_DISCOS.
-    Retorna el número ingresado.
-    """
-    print(f"\n  Ingrese el número de discos (mínimo 1, máximo {MAX_DISCOS}).")
-    print(f"  Nota: con {MAX_DISCOS} discos se realizan {2**MAX_DISCOS - 1:,} movimientos.")
-    while True:
-        try:
-            n = int(input(f"\n  Número de discos [1-{MAX_DISCOS}]: "))
-            if n < 1:
-                print("  [!] Debe ser al menos 1 disco.")
-            elif n > MAX_DISCOS:
-                print(f"  [!] El máximo permitido es {MAX_DISCOS} discos.")
-            else:
-                return n
-        except ValueError:
-            print("  [!] Ingrese un número entero válido.")
-
 
 # ─────────────────────────────────────────────
 #  Visualización de las torres
 # ─────────────────────────────────────────────
-def mostrar_torres(origen: Pila, auxiliar: Pila, destino: Pila, num_discos: int):
-    """Dibuja el estado actual de las tres torres en consola."""
+def mostrar_torres(origen: Pila, auxiliar: Pila, destino: Pila,
+                    num_discos: int = 3):
+    
+    #Dibuja el estado actual de las tres torres en consola.
+    
     pilas = [origen, auxiliar, destino]
     print("\n" + "─" * 42)
     for nivel in range(num_discos, 0, -1):
@@ -47,6 +26,7 @@ def mostrar_torres(origen: Pila, auxiliar: Pila, destino: Pila, num_discos: int)
             else:
                 fila += f"  {'|':^7}  "
         print(fila)
+    # Base y etiquetas
     print("  " + "─" * 7 + "    " + "─" * 7 + "    " + "─" * 7)
     print(f"  {origen.nombre:^7}    {auxiliar.nombre:^7}    {destino.nombre:^7}")
     print("─" * 42)
@@ -90,17 +70,21 @@ def hanoi(n: int, origen: Pila, destino: Pila, auxiliar: Pila,
 def hanoi_iterativo(num_discos: int):
     """
     Resuelve las Torres de Hanoi de forma iterativa usando tres Pilas.
+    Funciona para cualquier número de discos.
     """
     A = Pila("Origen")
     B = Pila("Auxiliar")
     C = Pila("Destino")
 
+    # Cargar discos (el más grande en la base)
     for disco in range(num_discos, 0, -1):
         A.apilar(disco)
 
     total_movimientos = (2 ** num_discos) - 1
     paso = [0]
 
+    # Para número impar de discos: A→C→B→A (ciclo)
+    # Para número par de discos:   A→B→C→A (ciclo)
     if num_discos % 2 == 0:
         pilas = [A, B, C]
     else:
@@ -110,9 +94,11 @@ def hanoi_iterativo(num_discos: int):
     mostrar_torres(A, B, C, num_discos)
 
     for _ in range(total_movimientos):
+        # Movimiento legal entre pilas[(i) % 3] y pilas[(i+1) % 3]
         for i in range(3):
             p1 = pilas[i % 3]
             p2 = pilas[(i + 1) % 3]
+            # Mover solo si es un movimiento legal
             if p1.esta_vacia() and p2.esta_vacia():
                 continue
             if p1.esta_vacia():
@@ -135,17 +121,12 @@ def hanoi_iterativo(num_discos: int):
 #  Programa principal
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
+    NUM_DISCOS = 3
 
     print("=" * 42)
-    print("        TORRES DE HANOI")
+    print("   TORRES DE HANOI  —  {} discos".format(NUM_DISCOS))
     print("=" * 42)
-
-    NUM_DISCOS = pedir_num_discos()
-
-    print("\n" + "=" * 42)
-    print(f"   TORRES DE HANOI  —  {NUM_DISCOS} disco(s)")
-    print("=" * 42)
-    print(f"Movimientos necesarios: {2**NUM_DISCOS - 1:,}")
+    print(f"Movimientos necesarios: {2**NUM_DISCOS - 1}")
 
     # ── Método recursivo ──
     print("\n★  SOLUCIÓN RECURSIVA  ★")
@@ -154,6 +135,7 @@ if __name__ == "__main__":
     auxiliar = Pila("Auxiliar")
     destino  = Pila("Destino")
 
+    # Cargar discos en la pila origen (mayor abajo, menor arriba)
     for disco in range(NUM_DISCOS, 0, -1):
         origen.apilar(disco)
 
@@ -163,6 +145,6 @@ if __name__ == "__main__":
     paso = [0]
     hanoi(NUM_DISCOS, origen, destino, auxiliar, paso, NUM_DISCOS)
 
-    print(f"\n✓ Resuelto en {paso[0]:,} movimientos.")
+    print(f"\n✓ Resuelto en {paso[0]} movimientos.")
     print("\nEstado final (todos los discos en 'Destino'):")
     mostrar_torres(origen, auxiliar, destino, NUM_DISCOS)
