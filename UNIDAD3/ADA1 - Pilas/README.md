@@ -6,6 +6,10 @@ Colección de dos programas que demuestran el uso de la estructura de datos **Pi
 
 ## Archivos
 
+# Clase_Cola.py
+
+Clase base que implementa la estructura de datos **Cola (LIFO)** usando `collections.deque`.
+
 | Archivo | Descripción |
 |---|---|
 | `expresiones_pila.py` | Evaluador de expresiones aritméticas en notación Postfija y Prefija |
@@ -104,72 +108,51 @@ Expresión: 8 3 - 2 *
 
 ---
 
-## 2️⃣ Torres de Hanoi — `torres_hanoi.py`
+## Ejercicio 3 — Torres de Hanoi (`Torres_Hanoi.py`)
 
-### ¿Qué hace?
+Resuelve el clásico problema de las **Torres de Hanoi** usando la clase `Pila`. Incluye solución **recursiva** e **iterativa**. El usuario elige cuántos discos quiere usar.
 
-Resuelve el clásico problema de las **Torres de Hanoi** para 3 discos, representando cada torre físicamente como una `Pila`. Muestra en consola una animación ASCII del estado de las torres después de cada movimiento.
+**Cómo ejecutarlo:**
 
-### Reglas del juego
-
-1. Solo se puede mover **un disco a la vez**.
-2. Solo se puede mover el disco que está en el **tope** de una torre.
-3. Ningún disco puede colocarse sobre un disco **más pequeño**.
-
-El objetivo es mover todos los discos desde la torre **Origen** hasta la torre **Destino**, usando la torre **Auxiliar** como apoyo.
-
-### ¿Cómo funciona?
-
-Se usa un algoritmo **recursivo** clásico:
-
-- Para mover `n` discos de Origen → Destino:
-  1. Mover los `n-1` discos superiores de Origen → Auxiliar.
-  2. Mover el disco más grande de Origen → Destino.
-  3. Mover los `n-1` discos de Auxiliar → Destino.
-
-Cada "movimiento" es en realidad una operación real sobre las pilas: `desapilar()` de la torre fuente y `apilar()` en la torre destino.
-
-### Ejemplo de ejecución
-
-```
-Estado inicial:
-──────────────────────────────────────
-     ■          |          |     
-    ■■          |          |     
-    ■■■         |          |     
-  ───────    ───────    ───────
-  Origen     Auxiliar    Destino
-
-Paso  1: Mover disco 1 de 'Origen' → 'Destino'
-Paso  2: Mover disco 2 de 'Origen' → 'Auxiliar'
-Paso  3: Mover disco 1 de 'Destino' → 'Auxiliar'
-Paso  4: Mover disco 3 de 'Origen' → 'Destino'
-Paso  5: Mover disco 1 de 'Auxiliar' → 'Origen'
-Paso  6: Mover disco 2 de 'Auxiliar' → 'Destino'
-Paso  7: Mover disco 1 de 'Origen' → 'Destino'
-
-Estado final:
-──────────────────────────────────────
-     |          |          ■     
-     |          |         ■■     
-     |          |         ■■■    
-  ───────    ───────    ───────
-  Origen     Auxiliar    Destino
-
-✓ Resuelto en 7 movimientos.
+```bash
+python Torres_Hanoi.py
 ```
 
-### Número de movimientos
+**Límite de discos: 15**
 
-Para `n` discos, el número mínimo de movimientos es siempre **2ⁿ − 1**:
+Con 15 discos se realizan 32.767 movimientos. Se establece este límite para evitar tiempos de ejecución excesivos y alto uso de memoria por la recursión.
 
 | Discos | Movimientos |
 |---|---|
-| 1 | 1 |
-| 2 | 3 |
 | 3 | 7 |
-| 4 | 15 |
+| 5 | 31 |
+| 10 | 1.023 |
+| 15 | 32.767 |
 
+**Ejemplo de uso:**
+
+```
+==========================================
+        TORRES DE HANOI
+==========================================
+
+  Ingrese el número de discos (mínimo 1, máximo 15).
+  Nota: con 15 discos se realizan 32,767 movimientos.
+
+  Número de discos [1-15]: 3
+
+Paso  1: Mover disco 1 de 'Origen' → 'Destino'
+
+──────────────────────────────────────────
+  ■■■    |       |
+  ────────────────────────
+  Origen  Auxiliar  Destino
+──────────────────────────────────────────
+...
+✓ Resuelto en 7 movimientos.
+```
+
+---
 ### Uso
 
 ```bash
