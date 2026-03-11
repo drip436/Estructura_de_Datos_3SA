@@ -1,146 +1,138 @@
-# ============================================================
-#  PROGRAMA 1: Evaluador de expresiones Postfija / Prefija
-#  usando una clase Pila implementada desde cero.
-# ============================================================
-
-#Invoca el fichero con la clase Pila
 from Clase_Pila import Pila as Pila
 
 # ─────────────────────────────────────────────
-#  Operadores soportados
+# Utilidades
 # ─────────────────────────────────────────────
+
 OPERADORES = {'+', '-', '*', '/'}
 
+def es_operador(token):
+    return token in OPERADORES
 
-def aplicar_operacion(operador: str, a: float, b: float) -> float:
-    """Aplica una operación binaria sobre dos operandos."""
-    if operador == '+':
-        return a + b
-    elif operador == '-':
-        return a - b
-    elif operador == '*':
-        return a * b
-    elif operador == '/':
+def es_numero(token):
+    try:
+        float(token)
+        return True
+    except ValueError:
+        return False
+
+def aplicar_operacion(op, a, b):
+    if op == '+': return a + b
+    if op == '-': return a - b
+    if op == '*': return a * b
+    if op == '/':
         if b == 0:
             raise ZeroDivisionError("División por cero.")
         return a / b
 
 
 # ─────────────────────────────────────────────
-#  Evaluación POSTFIJA  (ej: "3 4 + 2 *")
+# Evaluadores
 # ─────────────────────────────────────────────
-def evaluar_postfija(expresion: str) -> float:
-    """
-    Evalúa una expresión en notación postfija (Notación Polaca Inversa).
-    Los tokens deben estar separados por espacios.
-    Ejemplo: "3 4 + 2 *"  →  14.0
-    """
-    pila = Pila()
-    tokens = expresion.strip().split()
+
+def evaluar_postfija(expresion):
+    tokens = expresion.split()
+    pila = Pila("postfija")
+
+    print(f"\n  {'Token':<10} {'Acción':<35} {'Pila'}")
+    print(f"  {'-'*65}")
 
     for token in tokens:
-        if token in OPERADORES:
-            b = pila.desapilar()   # segundo operando
-            a = pila.desapilar()   # primer operando
+        if es_numero(token):
+            pila.apilar(float(token))
+            accion = f"Apilar {token}"
+        elif es_operador(token):
+            b = pila.desapilar()
+            a = pila.desapilar()
             resultado = aplicar_operacion(token, a, b)
             pila.apilar(resultado)
+            accion = f"{a} {token} {b} = {resultado}"
         else:
-            pila.apilar(float(token))
+            raise ValueError(f"Token desconocido: '{token}'")
+        print(f"  {token:<10} {accion:<35} {pila.contenido()}")
 
     if len(pila) != 1:
-        raise ValueError("Expresión postfija inválida.")
+        raise ValueError("Expresión malformada: sobran o faltan tokens.")
     return pila.desapilar()
 
 
-# ─────────────────────────────────────────────
-#  Evaluación PREFIJA  (ej: "* + 3 4 2")
-# ─────────────────────────────────────────────
-def evaluar_prefija(expresion: str) -> float:
-    """
-    Evalúa una expresión en notación prefija (Notación Polaca).
-    Los tokens deben estar separados por espacios.
-    Ejemplo: "* + 3 4 2"  →  14.0
-    """
-    pila = Pila()
-    tokens = expresion.strip().split()
+def evaluar_prefija(expresion):
+    tokens = expresion.split()
+    pila = Pila("prefija")
 
-    # Se recorre de derecha a izquierda
+    print(f"\n  {'Token':<10} {'Acción':<35} {'Pila'}")
+    print(f"  {'-'*65}")
+
     for token in reversed(tokens):
-        if token in OPERADORES:
-            a = pila.desapilar()   # primer operando
-            b = pila.desapilar()   # segundo operando
+        if es_numero(token):
+            pila.apilar(float(token))
+            accion = f"Apilar {token}"
+        elif es_operador(token):
+            a = pila.desapilar()
+            b = pila.desapilar()
             resultado = aplicar_operacion(token, a, b)
             pila.apilar(resultado)
+            accion = f"{a} {token} {b} = {resultado}"
         else:
-            pila.apilar(float(token))
+            raise ValueError(f"Token desconocido: '{token}'")
+        print(f"  {token:<10} {accion:<35} {pila.contenido()}")
 
     if len(pila) != 1:
-        raise ValueError("Expresión prefija inválida.")
+        raise ValueError("Expresión malformada: sobran o faltan tokens.")
     return pila.desapilar()
 
 
 # ─────────────────────────────────────────────
-#  Demo / Pruebas
+# Programa principal — solo modo interactivo
 # ─────────────────────────────────────────────
-if __name__ == "__main__":
-    print("=" * 50)
-    print("  EVALUADOR DE EXPRESIONES CON PILA")
-    print("=" * 50)
 
-    # ---------- POSTFIJA ----------
-    ejemplos_postfija = [
-        ("3 4 +",         7.0),    # 3 + 4
-        ("3 4 + 2 *",    14.0),    # (3 + 4) * 2
-        ("5 1 2 + 4 * + 3 -",  14.0),  # 5 + ((1+2)*4) - 3
-        ("10 2 /",         5.0),   # 10 / 2
-        ("2 3 4 * +",     14.0),   # 2 + (3 * 4)
-    ]
-
-    print("\n--- Notación POSTFIJA ---")
-    for expr, esperado in ejemplos_postfija:
-        resultado = evaluar_postfija(expr)
-        estado = "✓" if abs(resultado - esperado) < 1e-9 else "✗"
-        print(f"  {estado}  \"{expr}\"  =  {resultado}")
-
-    # ---------- PREFIJA ----------
-    ejemplos_prefija = [
-        ("+ 3 4",          7.0),
-        ("* + 3 4 2",     14.0),
-        ("+ 5 - * + 1 2 4 3",  14.0),
-        ("/ 10 2",          5.0),
-        ("+ 2 * 3 4",      14.0),
-    ]
-
-    print("\n--- Notación PREFIJA ---")
-    for expr, esperado in ejemplos_prefija:
-        resultado = evaluar_prefija(expr)
-        estado = "✓" if abs(resultado - esperado) < 1e-9 else "✗"
-        print(f"  {estado}  \"{expr}\"  =  {resultado}")
-
-    # ---------- Entrada interactiva ----------
-    print("\n" + "=" * 50)
-    print("  MODO INTERACTIVO")
-    print("=" * 50)
-    print("Ingrese expresiones con tokens separados por espacios.")
-    print("Escriba 'salir' para terminar.\n")
+def main():
+    print("=" * 67)
+    print("  Evaluador de expresiones aritméticas con Pila")
+    print("  Operadores soportados: + - * /")
+    print("  Los tokens deben ir separados por espacios.")
+    print()
+    print("  Postfija : operandos primero, operador al final  →  3 4 +")
+    print("  Prefija  : operador primero, operandos después   →  + 3 4")
+    print("=" * 67)
 
     while True:
-        modo = input("Modo (postfija/prefija): ").strip().lower()
-        if modo == "salir":
-            break
-        if modo not in ("postfija", "prefija"):
-            print("  Modo no reconocido. Use 'postfija' o 'prefija'.")
-            continue
+        print("\n  ┌─────────────────────────────┐")
+        print("  │  [1] Notación Postfija      │")
+        print("  │  [2] Notación Prefija       │")
+        print("  │  [0] Salir                  │")
+        print("  └─────────────────────────────┘")
+        opcion = input("  Elige opción: ").strip()
 
-        expresion = input("Expresión: ").strip()
-        if expresion.lower() == "salir":
+        if opcion == '0':
+            print("\n  ¡Hasta luego!")
             break
 
-        try:
-            if modo == "postfija":
-                res = evaluar_postfija(expresion)
-            else:
-                res = evaluar_prefija(expresion)
-            print(f"  Resultado: {res}\n")
-        except Exception as e:
-            print(f"  Error: {e}\n")
+        elif opcion in ('1', '2'):
+            tipo = "postfija" if opcion == '1' else "prefija"
+            expr = input(f"  Ingresa la expresión {tipo}: ").strip()
+
+            if not expr:
+                print("  ✗ No ingresaste ninguna expresión.")
+                continue
+
+            print(f"\n  Evaluando: {expr}")
+            try:
+                if opcion == '1':
+                    resultado = evaluar_postfija(expr)
+                else:
+                    resultado = evaluar_prefija(expr)
+
+                if resultado == int(resultado):
+                    resultado = int(resultado)
+                print(f"\n  ✓ Resultado: {resultado}")
+
+            except (IndexError, ValueError, ZeroDivisionError) as e:
+                print(f"\n  ✗ Error: {e}")
+
+        else:
+            print("  Opción no válida, elige 0, 1 o 2.")
+
+
+if __name__ == "__main__":
+    main()
