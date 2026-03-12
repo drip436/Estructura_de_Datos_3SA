@@ -3,7 +3,7 @@
 #  usando la clase Pila
 # ============================================================
 
-#Invoca el fichero con la clase Pila
+#Invoca el fichero con la
 from Clase_Pila import Pila as Pila
 
 # ─────────────────────────────────────────────
