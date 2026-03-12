@@ -23,8 +23,8 @@ class Order:
 
 class Queue:
     def __init__(self):
-        self.top = None    # Cabeza de la cola
-        self.tail = None   # Último nodo
+        self.top = None
+        self.tail = None
         self._size = 0
 
     def size(self):
@@ -34,13 +34,11 @@ class Queue:
         return self.top is None
 
     def front(self):
-        """Devuelve el primer elemento SIN eliminarlo. None si vacía."""
         if self.is_empty():
             return None
         return self.top.info
 
     def enqueue(self, info):
-        """Añade un nuevo elemento al final de la cola."""
         new_node = Node(info)
         if self.is_empty():
             self.top = new_node
@@ -50,7 +48,6 @@ class Queue:
         self._size += 1
 
     def dequeue(self):
-        """Elimina y devuelve el primer elemento. None si vacía."""
         if self.is_empty():
             return None
         extracted = self.top.info
@@ -61,14 +58,13 @@ class Queue:
         return extracted
 
     def print_info(self):
-        """Recorre e imprime la cola con formato del enunciado."""
         print("********* QUEUE DUMP *********")
         print(f"  Size: {self._size}")
         current = self.top
         count = 1
         while current is not None:
             print(f"** Element {count}")
-            current.info.print()   # Llama al método print() de Order
+            current.info.print()
             current = current.next
             count += 1
         print("******************************")
@@ -78,19 +74,38 @@ class Queue:
 if __name__ == "__main__":
     mi_cola = Queue()
 
-    mi_cola.enqueue(Order("Cust1", 20))
-    mi_cola.enqueue(Order("Cust2", 30))
-    mi_cola.enqueue(Order("Cust3", 40))
-    mi_cola.enqueue(Order("Cust3", 50))
+    while True:
+        try:
+            n = int(input("¿Cuántos pedidos quieres agregar a la cola? "))
+            if n <= 0:
+                print("Por favor ingresa un número mayor a 0.")
+            else:
+                break
+        except ValueError:
+            print("Entrada inválida. Ingresa un número entero.")
 
+    for i in range(1, n + 1):
+        print(f"\n--- Pedido {i} ---")
+        customer = input("  Nombre del cliente: ")
+        while True:
+            try:
+                qty = int(input("  Cantidad: "))
+                if qty <= 0:
+                    print("  La cantidad debe ser mayor a 0.")
+                else:
+                    break
+            except ValueError:
+                print("  Entrada inválida. Ingresa un número entero.")
+        mi_cola.enqueue(Order(customer, qty))
+
+    print("\n--- Cola inicial ---")
     mi_cola.print_info()
 
-    print(f"\nFront (sin eliminar): {mi_cola.front().getCustomer()}")
-    print(f"Tamaño: {mi_cola.size()}")
+    print(f"\nPrimer elemento (front): {mi_cola.front().getCustomer()}")
 
-    print("\n--- Dequeue ---")
+    print("\n--- Desencolando un elemento ---")
     atendido = mi_cola.dequeue()
-    print(f"Atendido: {atendido.getCustomer()}, qty: {atendido.getQty()}")
+    print(f"Atendido: {atendido.getCustomer()}, Cantidad: {atendido.getQty()}")
 
-    print()
+    print("\n--- Cola después del dequeue ---")
     mi_cola.print_info()
