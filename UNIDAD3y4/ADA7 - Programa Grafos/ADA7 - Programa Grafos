@@ -1,0 +1,455 @@
+"""
+╔══════════════════════════════════════════════════════════╗
+║   GRAFOS · 7 ESTADOS DE LA REPÚBLICA MEXICANA           ║
+║   Recorridos Hamiltonianos con visualización Tkinter     ║
+╚══════════════════════════════════════════════════════════╝
+
+Uso: python grafos_mexico.py
+"""
+
+import tkinter as tk
+import math
+import heapq
+import itertools
+from collections import defaultdict
+
+# ═══════════════════════════════════════════════════════════
+#  DATOS DEL GRAFO
+# ═══════════════════════════════════════════════════════════
+
+ESTADOS = [
+    "Mérida",
+    "Campeche",
+    "Villahermosa",
+    "Veracruz",
+    "Oaxaca",
+    "Puebla",
+    "CDMX",
+]
+
+# Aristas: (estado_a, estado_b, costo_km)
+ARISTAS = [
+    ("Mérida",       "Campeche",      197),
+    ("Campeche",     "Villahermosa",  444),
+    ("Villahermosa", "Veracruz",      516),
+    ("Veracruz",     "Oaxaca",        341),
+    ("Oaxaca",       "Puebla",        363),
+    ("Puebla",       "CDMX",          131),
+    ("Mérida",       "Villahermosa",  535),
+    ("Campeche",     "Oaxaca",        700),
+    ("Veracruz",     "Puebla",        300),
+    ("Puebla",       "Oaxaca",        363),
+    ("CDMX",         "Veracruz",      420),
+    ("CDMX",         "Oaxaca",        470),
+]
+
+# Posiciones base para dibujar (se escalan al canvas dinámicamente)
+POSICIONES = {
+    "Mérida":       (520, 70),
+    "Campeche":     (400, 155),
+    "Villahermosa": (295, 85),
+    "Veracruz":     (195, 175),
+    "Oaxaca":       (200, 310),
+    "Puebla":       (110, 215),
+    "CDMX":         (75,  315),
+}
+
+# ═══════════════════════════════════════════════════════════
+#  LÓGICA DE GRAFOS
+# ═══════════════════════════════════════════════════════════
+
+def construir_grafo():
+    g = defaultdict(dict)
+    for u, v, w in ARISTAS:
+        g[u][v] = w
+        g[v][u] = w
+    return g
+
+
+GRAFO = construir_grafo()
+
+
+def hamiltoniano_sin_repeticion(inicio="Mérida"):
+    """
+    Inciso a): Recorre los 7 estados exactamente una vez.
+    Fuerza bruta O(6!) = 720 permutaciones.
+    Devuelve (camino_lista, costo_total).
+    """
+    otros = [e for e in ESTADOS if e != inicio]
+    mejor_camino = None
+    mejor_costo  = math.inf
+
+    for perm in itertools.permutations(otros):
+        ruta  = [inicio] + list(perm)
+        costo = 0
+        valido = True
+        for i in range(len(ruta) - 1):
+            u, v = ruta[i], ruta[i + 1]
+            if v in GRAFO[u]:
+                costo += GRAFO[u][v]
+            else:
+                valido = False
+                break
+        if valido and costo < mejor_costo:
+            mejor_costo  = costo
+            mejor_camino = ruta
+
+    return mejor_camino, mejor_costo
+
+
+def hamiltoniano_con_repeticion(inicio="Mérida"):
+    """
+    Inciso b): Visita los 7 estados pudiendo repetir nodos.
+    Dijkstra sobre (nodo, frozenset_visitados).
+    Busca el camino de menor costo que cubra todos los estados
+    y tenga al menos un nodo repetido (len(camino) > 7).
+    """
+    meta = frozenset(ESTADOS)
+
+    # heap: (costo, nodo, visitados, camino)
+    heap = [(0, inicio, frozenset([inicio]), [inicio])]
+    dist = defaultdict(lambda: defaultdict(lambda: math.inf))
+    dist[inicio][frozenset([inicio])] = 0
+
+    mejor_rep = (None, math.inf)
+
+    while heap:
+        costo, nodo, visitados, camino = heapq.heappop(heap)
+
+        if costo > dist[nodo][visitados]:
+            continue
+
+        if visitados == meta:
+            # Camino completo: ¿tiene repetición?
+            if len(camino) > len(ESTADOS) and costo < mejor_rep[1]:
+                mejor_rep = (list(camino), costo)
+            # No expandir nodos ya completados
+            continue
+
+        # Poda: supera el mejor encontrado
+        if costo >= mejor_rep[1]:
+            continue
+
+        for vecino, peso in GRAFO[nodo].items():
+            nuevo_costo = costo + peso
+            nueva_vis   = visitados | {vecino}
+            if (nuevo_costo < dist[vecino][nueva_vis]
+                    and nuevo_costo < mejor_rep[1]):
+                dist[vecino][nueva_vis] = nuevo_costo
+                heapq.heappush(
+                    heap,
+                    (nuevo_costo, vecino, nueva_vis, camino + [vecino])
+                )
+
+    return mejor_rep
+
+
+# ═══════════════════════════════════════════════════════════
+#  PALETA Y FUENTES
+# ═══════════════════════════════════════════════════════════
+
+BG        = "#0d1117"
+PANEL     = "#161b22"
+ACCENT    = "#58a6ff"
+ACCENT2   = "#f78166"
+TEXT      = "#e6edf3"
+SUBTEXT   = "#8b949e"
+GREEN     = "#3fb950"
+GOLD      = "#d29922"
+BORDER    = "#30363d"
+NODE_FILL = "#1f6feb"
+EDGE_CLR  = "#21262d"
+
+FONT_SM   = ("Consolas", 9)
+FONT_MAIN = ("Consolas", 11)
+FONT_BOLD = ("Consolas", 11, "bold")
+FONT_H1   = ("Consolas", 15, "bold")
+FONT_H2   = ("Consolas", 13, "bold")
+
+
+# ═══════════════════════════════════════════════════════════
+#  APLICACIÓN
+# ═══════════════════════════════════════════════════════════
+
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Grafos · Estados de México")
+        self.configure(bg=BG)
+        self.geometry("1120x740")
+        self.resizable(True, True)
+        self._build_ui()
+
+    # ── INTERFAZ ──────────────────────────────────────────
+
+    def _build_ui(self):
+        # Encabezado
+        hdr = tk.Frame(self, bg=BG, pady=10)
+        hdr.pack(fill="x", padx=20)
+        tk.Label(hdr,
+                 text="◈  GRAFOS · REPÚBLICA MEXICANA",
+                 font=FONT_H1, fg=ACCENT, bg=BG).pack(side="left")
+        tk.Label(hdr,
+                 text="  7 estados · Recorridos Hamiltonianos",
+                 font=FONT_MAIN, fg=SUBTEXT, bg=BG).pack(side="left")
+
+        tk.Frame(self, bg=BORDER, height=1).pack(fill="x", padx=20)
+
+        # Cuerpo
+        body = tk.Frame(self, bg=BG)
+        body.pack(fill="both", expand=True, padx=12, pady=8)
+
+        left = tk.Frame(body, bg=BG, width=395)
+        left.pack(side="left", fill="y", padx=(0, 8))
+        left.pack_propagate(False)
+
+        right = tk.Frame(body, bg=PANEL,
+                         highlightthickness=1, highlightbackground=BORDER)
+        right.pack(side="left", fill="both", expand=True)
+
+        self._build_left(left)
+        self._build_canvas(right)
+
+    def _build_left(self, parent):
+        # Estados y relaciones
+        self._sec(parent, "▸ ESTADOS Y RELACIONES")
+        box = tk.Frame(parent, bg=PANEL,
+                       highlightthickness=1, highlightbackground=BORDER)
+        box.pack(fill="x", pady=(0, 10))
+
+        txt = tk.Text(box, bg=PANEL, fg=TEXT, font=FONT_SM,
+                      height=10, bd=0, relief="flat", wrap="none")
+        sb = tk.Scrollbar(box, orient="vertical", command=txt.yview, bg=PANEL)
+        txt.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        txt.pack(fill="both", padx=6, pady=4)
+
+        txt.tag_configure("h",    foreground=ACCENT,  font=FONT_BOLD)
+        txt.tag_configure("node", foreground=GREEN,   font=FONT_SM)
+        txt.tag_configure("edge", foreground=SUBTEXT, font=FONT_SM)
+
+        txt.insert("end", "NODOS (7 estados):\n", "h")
+        for e in ESTADOS:
+            txt.insert("end", f"  • {e}\n", "node")
+
+        txt.insert("end", "\nARISTAS (conexiones en km):\n", "h")
+        seen = set()
+        for u, v, w in ARISTAS:
+            k = tuple(sorted([u, v]))
+            if k not in seen:
+                seen.add(k)
+                txt.insert("end", f"  {u} ↔ {v}  [{w} km]\n", "edge")
+        txt.configure(state="disabled")
+
+        # Controles
+        self._sec(parent, "▸ ACCIONES")
+
+        def mk_btn(text, cmd, fg_color, hover_color, text_color=BG):
+            b = tk.Button(parent, text=text, command=cmd,
+                          bg=fg_color, fg=text_color, font=FONT_BOLD,
+                          relief="flat", bd=0, pady=7, cursor="hand2",
+                          activebackground=hover_color,
+                          activeforeground=text_color)
+            b.pack(fill="x", pady=(0, 6))
+
+        mk_btn("▶  a) Recorrido sin repetición",  self._resolver_a, ACCENT,  "#388bfd")
+        mk_btn("▶  b) Recorrido con repetición",   self._resolver_b, ACCENT2, "#e05d48")
+        mk_btn("↺  Limpiar", self._limpiar, BORDER, "#484f58", TEXT)
+
+        # Resultados
+        self._sec(parent, "▸ RESULTADOS")
+        res_box = tk.Frame(parent, bg=PANEL,
+                           highlightthickness=1, highlightbackground=BORDER)
+        res_box.pack(fill="both", expand=True)
+
+        self._res = tk.Text(res_box, bg=PANEL, fg=TEXT, font=FONT_SM,
+                            bd=0, relief="flat", wrap="word")
+        sb2 = tk.Scrollbar(res_box, orient="vertical",
+                           command=self._res.yview, bg=PANEL)
+        self._res.configure(yscrollcommand=sb2.set)
+        sb2.pack(side="right", fill="y")
+        self._res.pack(fill="both", expand=True, padx=6, pady=4)
+
+        self._res.tag_configure("h",    foreground=ACCENT,  font=FONT_BOLD)
+        self._res.tag_configure("path", foreground=GREEN,   font=FONT_MAIN)
+        self._res.tag_configure("cost", foreground=GOLD,    font=FONT_H2)
+        self._res.tag_configure("rep",  foreground=ACCENT2, font=FONT_BOLD)
+        self._res.tag_configure("sub",  foreground=SUBTEXT, font=FONT_SM)
+        self._res.tag_configure("row",  foreground=SUBTEXT, font=FONT_SM)
+
+        self._escribir([("sub", "Presiona un botón para calcular el recorrido...\n")])
+
+    def _sec(self, parent, titulo):
+        f = tk.Frame(parent, bg=BG)
+        f.pack(fill="x", pady=(6, 2))
+        tk.Label(f, text=titulo, font=FONT_BOLD, fg=SUBTEXT, bg=BG).pack(side="left")
+
+    def _build_canvas(self, parent):
+        tk.Label(parent, text="GRAFO INTERACTIVO  —  distancias en km",
+                 font=FONT_SM, fg=SUBTEXT, bg=PANEL).pack(pady=(8, 0))
+        self.canvas = tk.Canvas(parent, bg=PANEL, bd=0, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True, padx=10, pady=8)
+        self.canvas.bind("<Configure>", lambda e: self._dibujar_grafo())
+        self._dibujar_grafo()
+
+    # ── DIBUJO DEL GRAFO ──────────────────────────────────
+
+    def _dibujar_grafo(self, camino=None, color_ruta=ACCENT):
+        c = self.canvas
+        c.delete("all")
+        W = c.winfo_width()  or 680
+        H = c.winfo_height() or 520
+        margin = 65
+
+        xs = [p[0] for p in POSICIONES.values()]
+        ys = [p[1] for p in POSICIONES.values()]
+        rx = (max(xs) - min(xs)) or 1
+        ry = (max(ys) - min(ys)) or 1
+
+        def esc(n):
+            ox, oy = POSICIONES[n]
+            return (
+                margin + (ox - min(xs)) / rx * (W - 2 * margin),
+                margin + (oy - min(ys)) / ry * (H - 2 * margin),
+            )
+
+        coords = {n: esc(n) for n in ESTADOS}
+
+        # Aristas del camino
+        ruta_set: set = set()
+        if camino:
+            for i in range(len(camino) - 1):
+                ruta_set.add((camino[i], camino[i + 1]))
+                ruta_set.add((camino[i + 1], camino[i]))
+
+        # Dibujar aristas
+        seen: set = set()
+        for u, v, w in ARISTAS:
+            k = tuple(sorted([u, v]))
+            if k in seen:
+                continue
+            seen.add(k)
+            x1, y1 = coords[u]
+            x2, y2 = coords[v]
+            en_ruta = (u, v) in ruta_set
+            clr  = color_ruta if en_ruta else EDGE_CLR
+            ancho = 3 if en_ruta else 1
+            c.create_line(x1, y1, x2, y2, fill=clr, width=ancho, smooth=True)
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            c.create_oval(mx - 15, my - 9, mx + 15, my + 9,
+                          fill=BG, outline=clr, width=1)
+            c.create_text(mx, my, text=str(w), font=FONT_SM,
+                          fill=clr if en_ruta else SUBTEXT)
+
+        # Nodos repetidos
+        rep_set: set = set()
+        if camino:
+            cnt: dict = defaultdict(int)
+            for n in camino:
+                cnt[n] += 1
+            rep_set = {n for n, k in cnt.items() if k > 1}
+
+        # Dibujar nodos
+        R = 24
+        for nodo, (x, y) in coords.items():
+            en_cam = camino and nodo in camino
+            es_rep = nodo in rep_set
+            fill  = ACCENT2 if es_rep else (ACCENT if en_cam else NODE_FILL)
+            borde = "#ffffff" if en_cam else "#444c56"
+            c.create_oval(x - R, y - R, x + R, y + R,
+                          fill=fill, outline=borde, width=2)
+            c.create_text(x, y - 3, text=nodo[:3].upper(),
+                          font=FONT_BOLD, fill="#ffffff")
+            c.create_text(x, y + R + 12, text=nodo,
+                          font=FONT_SM, fill=TEXT)
+
+        # Leyenda
+        if camino:
+            lx, ly = 8, H - 66
+            c.create_rectangle(lx, ly, lx + 215, H - 6,
+                                fill=PANEL, outline=BORDER)
+            c.create_text(lx + 8, ly + 12, anchor="w",
+                          text="●  Nodo visitado",    font=FONT_SM, fill=ACCENT)
+            c.create_text(lx + 8, ly + 28, anchor="w",
+                          text="●  Nodo repetido",    font=FONT_SM, fill=ACCENT2)
+            c.create_text(lx + 8, ly + 44, anchor="w",
+                          text="─  Arista del camino", font=FONT_SM, fill=color_ruta)
+
+    # ── BOTONES ───────────────────────────────────────────
+
+    def _resolver_a(self):
+        camino, costo = hamiltoniano_sin_repeticion()
+        self._dibujar_grafo(camino=camino, color_ruta=ACCENT)
+        self._mostrar_a(camino, costo)
+
+    def _resolver_b(self):
+        camino, costo = hamiltoniano_con_repeticion()
+        self._dibujar_grafo(camino=camino, color_ruta=ACCENT2)
+        self._mostrar_b(camino, costo)
+
+    def _limpiar(self):
+        self._dibujar_grafo()
+        self._escribir([("sub", "Presiona un botón para calcular el recorrido...\n")])
+
+    # ── RESULTADOS ────────────────────────────────────────
+
+    def _escribir(self, partes):
+        t = self._res
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        for tag, txt in partes:
+            t.insert("end", txt, tag)
+        t.configure(state="disabled")
+
+    def _mostrar_a(self, camino, costo):
+        p = []
+        p.append(("h",   "══ INCISO a) SIN REPETICIÓN ══\n"))
+        p.append(("sub", "Recorre los 7 estados exactamente una vez.\n\n"))
+        if camino:
+            p.append(("sub",  "Ruta óptima:\n"))
+            p.append(("path", "  " + " → ".join(camino) + "\n\n"))
+            p.append(("sub",  "Desglose por tramo:\n"))
+            for i in range(len(camino) - 1):
+                u, v = camino[i], camino[i + 1]
+                w = GRAFO[u][v]
+                p.append(("row", f"  {u[:13]:13} → {v[:13]:13}  {w:>4} km\n"))
+            p.append(("sub",  "\n"))
+            p.append(("cost", f"  ✔  COSTO TOTAL:  {costo} km\n"))
+        else:
+            p.append(("rep", "No se encontró un camino hamiltoniano.\n"))
+        self._escribir(p)
+
+    def _mostrar_b(self, camino, costo):
+        p = []
+        p.append(("h",   "══ INCISO b) CON REPETICIÓN ══\n"))
+        p.append(("sub", "Visita todos los estados repitiendo ≥1 nodo.\n\n"))
+        if camino:
+            p.append(("sub",  "Ruta encontrada:\n"))
+            p.append(("path", "  " + " → ".join(camino) + "\n\n"))
+            cnt: dict = defaultdict(int)
+            for n in camino:
+                cnt[n] += 1
+            reps = [(n, k) for n, k in cnt.items() if k > 1]
+            p.append(("sub", "Nodos repetidos:\n"))
+            for n, k in reps:
+                p.append(("rep", f"  ⚠  {n}  ×{k}\n"))
+            p.append(("sub", "\n"))
+            p.append(("sub",  "Desglose por tramo:\n"))
+            for i in range(len(camino) - 1):
+                u, v = camino[i], camino[i + 1]
+                w = GRAFO[u][v]
+                p.append(("row", f"  {u[:13]:13} → {v[:13]:13}  {w:>4} km\n"))
+            p.append(("sub",  "\n"))
+            p.append(("cost", f"  ✔  COSTO TOTAL:  {costo} km\n"))
+        else:
+            p.append(("rep", "No se encontró solución con repetición.\n"))
+        self._escribir(p)
+
+
+# ═══════════════════════════════════════════════════════════
+#  MAIN
+# ═══════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
