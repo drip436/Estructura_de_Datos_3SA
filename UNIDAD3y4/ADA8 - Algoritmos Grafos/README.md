@@ -8,9 +8,8 @@ Aplicación de escritorio en Python que implementa y visualiza **4 algoritmos cl
 
 | Archivo | Descripción |
 |---|---|
-| `algoritmos_grafos.py` | Implementación pura de los 4 algoritmos (sin interfaz) |
-| `algoritmos_grafos_gui.py` | Interfaz gráfica con tablas y resultados en texto |
-| `algoritmos_grafos_visual.py` | ⭐ Interfaz gráfica con grafos dibujados visualmente |
+| `algoritmos_terminal.py` | Implementación pura de los 4 algoritmos (sin interfaz) |
+| `algoritmos_grafos.py` | ⭐ Interfaz gráfica con grafos dibujados visualmente |
 
 ---
 
