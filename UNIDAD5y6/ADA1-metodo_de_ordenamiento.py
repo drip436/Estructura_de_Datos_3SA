@@ -1,19 +1,7 @@
-"""
-╔══════════════════════════════════════════════════════════════════╗
-║        SISTEMA DE INVENTARIO - ORDENAMIENTO DE PRECIOS           ║
-║        Caso Real: Catálogo de Productos (Precios en USD)         ║
-║        Vector inicial: [45, 17, 23, 67, 21]                      ║
-╚══════════════════════════════════════════════════════════════════╝
-
-DESCRIPCIÓN:
-    Visualización de cómo un sistema organiza los precios de productos
-    de forma ascendente para mostrar un catálogo ordenado al cliente.
-"""
-
 import tkinter as tk
-from tkinter import ttk, font
+from tkinter import ttk, font, messagebox
 import time
-
+import random
 
 # ══════════════════════════════════════════════════════
 #  CONFIGURACIÓN GLOBAL DE COLORES Y ESTILOS
@@ -43,40 +31,34 @@ FUENTE_SUBTITULO= ("Courier New", 10, "bold")
 FUENTE_NORMAL   = ("Courier New", 9)
 FUENTE_CODIGO   = ("Courier New", 9)
 FUENTE_GRANDE   = ("Courier New", 28, "bold")
-FUENTE_BARRA    = ("Courier New", 11, "bold")   # Valores dentro de las barras
+FUENTE_BARRA    = ("Courier New", 11, "bold")
 
 
 # ══════════════════════════════════════════════════════
 #  CLASE PRINCIPAL: BubbleSortSimulator
 # ══════════════════════════════════════════════════════
 class BubbleSortSimulator:
-    """
-    Controlador principal del simulador.
-    Simula la organización de precios de productos en un almacén.
-    """
-
-    # Vector original: Precios de 5 productos diferentes
-    VECTOR_ORIGINAL = [45, 17, 23, 67, 21]
-
     def __init__(self, root: tk.Tk):
         self.root = root
+        # Vector por defecto inicial
+        self.VECTOR_ORIGINAL = [45, 17, 23, 67, 21, 5, 17, 23, 67, 21]
         self._configurar_ventana()
 
         # ── Estado del algoritmo ──────────────────────────
-        self.vector           = list(self.VECTOR_ORIGINAL)   # Copia mutable
+        self.vector           = list(self.VECTOR_ORIGINAL)
         self.n                = len(self.vector)
-        self.i_externo       = 0    # Iteración del bucle externo (pasadas)
-        self.j_interno       = 0    # Posición en el bucle interno (comparación)
+        self.i_externo       = 0
+        self.j_interno       = 0
         self.total_comparaciones = 0
         self.total_intercambios  = 0
         self.finalizado      = False
-        self.reproduciendo   = False    # True si está en modo automático
-        self._job_after      = None     # Referencia al callback de tk.after
+        self.reproduciendo   = False
+        self._job_after      = None
 
         # ── Índices especiales para colorear ─────────────
         self.idx_comparando_1 = -1
         self.idx_comparando_2 = -1
-        self.indices_ordenados = set()   # Elementos ya en posición final
+        self.indices_ordenados = set()
 
         # ── Historial de pasos (log) ──────────────────────
         self.log_pasos = []
@@ -86,56 +68,41 @@ class BubbleSortSimulator:
         self._dibujar_barras()
         self._actualizar_contadores()
 
-    # ──────────────────────────────────────────────────────────
-    #  CONFIGURACIÓN DE LA VENTANA RAÍZ
-    # ──────────────────────────────────────────────────────────
     def _configurar_ventana(self):
-        """Establece título, tamaño y color de la ventana principal."""
         self.root.title("SISTEMA DE GESTIÓN: Ordenamiento de Precios")
         self.root.configure(bg=COLORES["fondo"])
         self.root.resizable(False, False)
 
-        # Centrar en la pantalla
-        ancho, alto = 900, 680
+        ancho, alto = 950, 750
         x = (self.root.winfo_screenwidth()  - ancho) // 2
         y = (self.root.winfo_screenheight() - alto)  // 2
         self.root.geometry(f"{ancho}x{alto}+{x}+{y}")
 
-    # ──────────────────────────────────────────────────────────
-    #  CONSTRUCCIÓN DE LA INTERFAZ
-    # ──────────────────────────────────────────────────────────
     def _construir_ui(self):
-        """Ensambla todos los frames y widgets de la interfaz."""
         self._crear_cabecera()
         self._crear_cuerpo_principal()
         self._crear_panel_inferior()
 
-    # ── Cabecera ──────────────────────────────────────────────
     def _crear_cabecera(self):
-        """Barra superior con título y vector actual."""
         frame = tk.Frame(self.root, bg=COLORES["panel"],
                          highlightbackground=COLORES["acento"],
                          highlightthickness=1)
         frame.pack(fill="x", padx=10, pady=(10, 0))
 
-        # Título Contextualizado
         tk.Label(frame,
-                 text="◈  SISTEMA DE INVENTARIO: ORGANIZACIÓN DE CATÁLOGO  ◈",
+                 text="◈  SISTEMA DE INVENTARIO: CARGA MASIVA  ◈",
                  font=FUENTE_TITULO,
                  fg=COLORES["acento_claro"],
                  bg=COLORES["panel"]).pack(side="left", padx=15, pady=8)
 
-        # Vector actual (etiqueta dinámica)
         self.lbl_vector = tk.Label(frame,
-                                   text="Precios: " + str(self.vector),
+                                   text=f"Elementos: {len(self.vector)}",
                                    font=FUENTE_CODIGO,
                                    fg=COLORES["texto_secundario"],
                                    bg=COLORES["panel"])
         self.lbl_vector.pack(side="right", padx=15)
 
-    # ── Cuerpo principal ──────────────────────────────────────
     def _crear_cuerpo_principal(self):
-        """Frame central que contiene el canvas y el panel lateral."""
         frame_cuerpo = tk.Frame(self.root, bg=COLORES["fondo"])
         frame_cuerpo.pack(fill="both", expand=True, padx=10, pady=8)
 
@@ -143,264 +110,165 @@ class BubbleSortSimulator:
         self._crear_panel_lateral(frame_cuerpo)
 
     def _crear_canvas_visualizacion(self, padre):
-        """
-        Canvas donde se dibujan los precios como barras.
-        """
-        frame_canvas = tk.Frame(padre,
-                                bg=COLORES["panel"],
+        frame_canvas = tk.Frame(padre, bg=COLORES["panel"],
                                 highlightbackground=COLORES["borde"],
                                 highlightthickness=1)
         frame_canvas.pack(side="left", fill="both", expand=True, padx=(0, 6))
 
-        # Sub-cabecera del canvas
         tk.Label(frame_canvas,
-                 text="▸ Comparativa de Costos por Producto (USD)",
+                 text="▸ Monitor de Densidad de Datos (Precios USD)",
                  font=FUENTE_SUBTITULO,
                  fg=COLORES["texto_secundario"],
                  bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(6, 0))
 
         self.canvas = tk.Canvas(frame_canvas,
-                                width=556, height=300,
+                                width=600, height=350,
                                 bg=COLORES["panel"],
                                 highlightthickness=0)
-        self.canvas.pack(padx=4, pady=(0, 6))
+        self.canvas.pack(padx=10, pady=(10, 6), fill="both", expand=True)
 
-        # Leyenda de colores debajo del canvas
         self._crear_leyenda(frame_canvas)
 
     def _crear_leyenda(self, padre):
-        """Pequeña leyenda que explica qué significa cada color."""
         frame = tk.Frame(padre, bg=COLORES["panel"])
         frame.pack(padx=10, pady=(0, 8))
-
         leyenda = [
             (COLORES["barra_normal"],    "Precio Base"),
-            (COLORES["barra_comparar1"], "Producto A"),
-            (COLORES["barra_comparar2"], "Producto B"),
-            (COLORES["barra_ordenada"],  "Precio Correcto ✓"),
+            (COLORES["barra_comparar1"], "En Análisis"),
+            (COLORES["barra_ordenada"],  "Organizado ✓"),
         ]
         for color, texto in leyenda:
             tk.Label(frame, text="■", fg=color, bg=COLORES["panel"],
                      font=("Courier New", 10)).pack(side="left", padx=(4, 0))
-            tk.Label(frame, text=texto,
-                     fg=COLORES["texto_secundario"],
-                     bg=COLORES["panel"],
-                     font=FUENTE_NORMAL).pack(side="left", padx=(0, 8))
+            tk.Label(frame, text=texto, fg=COLORES["texto_secundario"],
+                     bg=COLORES["panel"], font=FUENTE_NORMAL).pack(side="left", padx=(0, 8))
 
     def _crear_panel_lateral(self, padre):
-        """
-        Panel derecho con contadores, explicación actual y botones.
-        """
         frame = tk.Frame(padre, bg=COLORES["panel"],
                          highlightbackground=COLORES["borde"],
-                         highlightthickness=1, width=290)
+                         highlightthickness=1, width=300)
         frame.pack(side="right", fill="both")
         frame.pack_propagate(False)
 
-        # ── Contadores ──────────────────────────────────
-        tk.Label(frame, text="▸ Monitor de Procesamiento",
-                 font=FUENTE_SUBTITULO,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(8, 2))
+        # ── ENTRADA DE DATOS (NUEVO) ──────────────────
+        tk.Label(frame, text="▸ Carga de Elementos", font=FUENTE_SUBTITULO,
+                 fg=COLORES["acento_claro"], bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(8, 2))
+        
+        self.txt_input = tk.Text(frame, height=4, bg=COLORES["fondo"], fg=COLORES["texto"],
+                                 font=FUENTE_CODIGO, highlightthickness=1, highlightbackground=COLORES["borde"])
+        self.txt_input.pack(fill="x", padx=10, pady=2)
+        self.txt_input.insert("1.0", "45, 17, 23, 67, 21")
 
-        frame_stats = tk.Frame(frame, bg=COLORES["fondo"],
-                               highlightbackground=COLORES["borde"],
-                               highlightthickness=1)
-        frame_stats.pack(fill="x", padx=10, pady=(0, 8))
+        frame_input_btns = tk.Frame(frame, bg=COLORES["panel"])
+        frame_input_btns.pack(fill="x", padx=10, pady=5)
 
-        def stat_row(parent, etiqueta, color_val):
-            row = tk.Frame(parent, bg=COLORES["fondo"])
-            row.pack(fill="x", padx=8, pady=3)
-            tk.Label(row, text=etiqueta, font=FUENTE_CODIGO,
-                     fg=COLORES["texto_secundario"],
-                     bg=COLORES["fondo"],
-                     anchor="w").pack(side="left")
-            lbl = tk.Label(row, text="0", font=FUENTE_CODIGO,
-                            fg=color_val, bg=COLORES["fondo"])
-            lbl.pack(side="right")
-            return lbl
+        tk.Button(frame_input_btns, text="Cargar Manual", bg=COLORES["borde"], fg="#FFF",
+                  command=self._cargar_manual, font=FUENTE_NORMAL, relief="flat").pack(side="left", expand=True, fill="x", padx=2)
+        tk.Button(frame_input_btns, text="Azar 1000", bg=COLORES["borde"], fg="#FFF",
+                  command=self._cargar_1000, font=FUENTE_NORMAL, relief="flat").pack(side="left", expand=True, fill="x", padx=2)
 
-        self.lbl_pasada      = stat_row(frame_stats, "Ciclo Revisión:",
-                                        COLORES["acento_claro"])
-        self.lbl_comparacion = stat_row(frame_stats, "Par Analizado:",
-                                        COLORES["advertencia"])
-        self.lbl_total_comp  = stat_row(frame_stats, "Revisiones Totales:",
-                                        COLORES["texto"])
-        self.lbl_total_int   = stat_row(frame_stats, "Cambios Realizados:",
-                                        COLORES["error"])
+        # ── STATS ──────────────────────────────────
+        self.lbl_pasada      = self._stat_row(frame, "Ciclo Revisión:", COLORES["acento_claro"])
+        self.lbl_total_comp  = self._stat_row(frame, "Revisiones:", COLORES["texto"])
+        self.lbl_total_int   = self._stat_row(frame, "Intercambios:", COLORES["error"])
 
-        # ── Explicación del paso actual ──────────────────
-        tk.Label(frame, text="▸ Registro de Operaciones",
-                 font=FUENTE_SUBTITULO,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(0, 2))
+        # ── REGISTRO ──────────────────────────────
+        tk.Label(frame, text="▸ Estado", font=FUENTE_SUBTITULO, fg=COLORES["texto_secundario"], bg=COLORES["panel"]).pack(anchor="w", padx=10)
+        self.lbl_explicacion = tk.Label(frame, text="Listo para procesar.", font=FUENTE_NORMAL,
+                                        fg=COLORES["texto"], bg=COLORES["fondo"], wraplength=260, height=3, anchor="nw", justify="left")
+        self.lbl_explicacion.pack(fill="x", padx=10, pady=5)
 
-        self.lbl_explicacion = tk.Label(frame,
-                                        text="Inicie el proceso para organizar los precios.",
-                                        font=FUENTE_NORMAL,
-                                        fg=COLORES["texto"],
-                                        bg=COLORES["fondo"],
-                                        wraplength=260,
-                                        justify="left",
-                                        anchor="nw")
-        self.lbl_explicacion.pack(fill="x", padx=10, pady=(0, 6),
-                                  ipady=6, ipadx=6)
+        # ── VELOCIDAD ─────────────────────────────
+        tk.Label(frame, text="▸ Velocidad (Turbo recomendado p/ 1000)", font=FUENTE_SUBTITULO, fg=COLORES["texto_secundario"], bg=COLORES["panel"]).pack(anchor="w", padx=10)
+        self.slider_velocidad = tk.Scale(frame, from_=0, to=2000, orient="horizontal", bg=COLORES["panel"], fg=COLORES["texto"],
+                                         troughcolor=COLORES["borde"], highlightthickness=0, bd=0, showvalue=False)
+        self.slider_velocidad.set(1950)
+        self.slider_velocidad.pack(fill="x", padx=10)
 
-        # ── Velocidad de animación ───────────────────────
-        tk.Label(frame, text="▸ Velocidad de Sistema",
-                 font=FUENTE_SUBTITULO,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(0, 2))
+        self._crear_botones_control(frame)
 
-        frame_vel = tk.Frame(frame, bg=COLORES["panel"])
-        frame_vel.pack(fill="x", padx=10, pady=(0, 8))
+    def _stat_row(self, parent, etiqueta, color_val):
+        row = tk.Frame(parent, bg=COLORES["panel"])
+        row.pack(fill="x", padx=10, pady=2)
+        tk.Label(row, text=etiqueta, font=FUENTE_CODIGO, fg=COLORES["texto_secundario"], bg=COLORES["panel"]).pack(side="left")
+        lbl = tk.Label(row, text="0", font=FUENTE_CODIGO, fg=color_val, bg=COLORES["panel"])
+        lbl.pack(side="right")
+        return lbl
 
-        tk.Label(frame_vel, text="Manual", font=FUENTE_NORMAL,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(side="left")
-
-        self.slider_velocidad = tk.Scale(frame_vel,
-                                         from_=100, to=2000,
-                                         orient="horizontal",
-                                         resolution=100,
-                                         bg=COLORES["panel"],
-                                         fg=COLORES["texto"],
-                                         troughcolor=COLORES["borde"],
-                                         highlightthickness=0,
-                                         bd=0,
-                                         sliderrelief="flat",
-                                         showvalue=False)
-        self.slider_velocidad.set(800)
-        self.slider_velocidad.pack(side="left", fill="x", expand=True)
-
-        tk.Label(frame_vel, text="Turbo", font=FUENTE_NORMAL,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(side="right")
-
-        self._crear_botones(frame)
-
-    def _crear_botones(self, padre):
-        """Crea los tres botones principales de control."""
+    def _crear_botones_control(self, padre):
         frame = tk.Frame(padre, bg=COLORES["panel"])
-        frame.pack(fill="x", padx=10, pady=4)
+        frame.pack(fill="x", padx=10, pady=10)
+        
+        btn_style = {"relief": "flat", "cursor": "hand2", "font": FUENTE_SUBTITULO, "pady": 8}
+        
+        self.btn_paso = tk.Button(frame, text="▶ Paso a Paso", bg=COLORES["acento"], fg="#FFF", command=self._paso_siguiente, **btn_style)
+        self.btn_paso.pack(fill="x", pady=2)
 
-        estilo_btn = {
-            "font":            FUENTE_SUBTITULO,
-            "relief":          "flat",
-            "cursor":          "hand2",
-            "activeforeground":"#FFFFFF",
-            "bd":               0,
-            "pady":            7,
-        }
+        self.btn_auto = tk.Button(frame, text="⏵ Auto-Organizar", bg="#2E4A3E", fg=COLORES["exito"], command=self._toggle_auto, **btn_style)
+        self.btn_auto.pack(fill="x", pady=2)
 
-        self.btn_paso = tk.Button(frame,
-                                  text="▶  Siguiente Paso",
-                                  bg=COLORES["acento"],
-                                  fg="#FFFFFF",
-                                  activebackground=COLORES["acento_claro"],
-                                  command=self._paso_siguiente,
-                                  **estilo_btn)
-        self.btn_paso.pack(fill="x", pady=3)
+        self.btn_reset = tk.Button(frame, text="↺ Restablecer", bg="#3A2030", fg=COLORES["error"], command=self._reiniciar, **btn_style)
+        self.btn_reset.pack(fill="x", pady=2)
 
-        self.btn_auto = tk.Button(frame,
-                                  text="⏵  Auto-Organizar",
-                                  bg="#2E4A3E",
-                                  fg=COLORES["exito"],
-                                  activebackground="#3A5E4F",
-                                  command=self._toggle_auto,
-                                  **estilo_btn)
-        self.btn_auto.pack(fill="x", pady=3)
-
-        self.btn_reset = tk.Button(frame,
-                                   text="↺  Restablecer Precios",
-                                   bg="#3A2030",
-                                   fg=COLORES["error"],
-                                   activebackground="#4A2840",
-                                   command=self._reiniciar,
-                                   **estilo_btn)
-        self.btn_reset.pack(fill="x", pady=3)
-
-    # ── Panel inferior: historial de pasos ────────────────────
     def _crear_panel_inferior(self):
-        """Log scrollable con todos los pasos realizados."""
-        frame = tk.Frame(self.root, bg=COLORES["panel"],
-                         highlightbackground=COLORES["borde"],
-                         highlightthickness=1)
+        frame = tk.Frame(self.root, bg=COLORES["panel"], highlightbackground=COLORES["borde"], highlightthickness=1)
         frame.pack(fill="x", padx=10, pady=(0, 10))
+        tk.Label(frame, text="▸ Log del Sistema", font=FUENTE_SUBTITULO, fg=COLORES["texto_secundario"], bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=5)
+        
+        self.txt_log = tk.Text(frame, height=4, bg=COLORES["fondo"], fg=COLORES["texto"], font=FUENTE_CODIGO, relief="flat", state="disabled")
+        self.txt_log.pack(fill="x", padx=10, pady=(0, 10))
 
-        tk.Label(frame, text="▸ Log del Servidor de Inventario",
-                 font=FUENTE_SUBTITULO,
-                 fg=COLORES["texto_secundario"],
-                 bg=COLORES["panel"]).pack(anchor="w", padx=10, pady=(6, 2))
+    # ── LÓGICA DE CARGA ───────────────────────────────────────
+    def _cargar_manual(self):
+        try:
+            raw = self.txt_input.get("1.0", "end-1c")
+            nueva_lista = [int(x.strip()) for x in raw.replace(",", " ").split() if x.strip().isdigit()]
+            if not nueva_lista: raise ValueError
+            self.VECTOR_ORIGINAL = nueva_lista
+            self._reiniciar()
+        except:
+            messagebox.showerror("Error", "Formato inválido. Use números separados por comas.")
 
-        frame_txt = tk.Frame(frame, bg=COLORES["panel"])
-        frame_txt.pack(fill="x", padx=10, pady=(0, 8))
+    def _cargar_1000(self):
+        self.VECTOR_ORIGINAL = [random.randint(5, 500) for _ in range(1000)]
+        self._reiniciar()
 
-        scroll = tk.Scrollbar(frame_txt, bg=COLORES["panel"])
-        scroll.pack(side="right", fill="y")
-
-        self.txt_log = tk.Text(frame_txt, height=5, bg=COLORES["fondo"],
-                               fg=COLORES["texto"], font=FUENTE_CODIGO,
-                               relief="flat", bd=0, state="disabled",
-                               yscrollcommand=scroll.set, wrap="word")
-        self.txt_log.pack(side="left", fill="x", expand=True)
-        scroll.config(command=self.txt_log.yview)
-
-        self.txt_log.tag_configure("intercambio", foreground=COLORES["error"])
-        self.txt_log.tag_configure("normal", foreground=COLORES["texto_secundario"])
-        self.txt_log.tag_configure("ordenado", foreground=COLORES["exito"])
-        self.txt_log.tag_configure("inicio", foreground=COLORES["acento_claro"])
-
-    # ──────────────────────────────────────────────────────────
-    #  LÓGICA DEL ALGORITMO BUBBLE SORT (Contextualizado)
-    # ──────────────────────────────────────────────────────────
+    # ── LÓGICA DEL ALGORITMO ──────────────────────────────────
     def _paso_siguiente(self):
-        if self.finalizado:
-            return
+        if self.finalizado: return
 
         n = self.n
         i = self.i_externo
         j = self.j_interno
-        limite_j = n - i - 2
 
         if i > n - 2:
             self._marcar_finalizado()
             return
 
-        a = self.vector[j]
-        b = self.vector[j + 1]
+        a, b = self.vector[j], self.vector[j + 1]
         self.total_comparaciones += 1
+        self.idx_comparando_1, self.idx_comparando_2 = j, j + 1
 
-        self.idx_comparando_1 = j
-        self.idx_comparando_2 = j + 1
-
+        hubo_cambio = False
         if a > b:
             self.vector[j], self.vector[j + 1] = self.vector[j + 1], self.vector[j]
             self.total_intercambios += 1
             hubo_cambio = True
-            explicacion = (f"Revisión {i+1}: El precio ${a} es mayor que ${b}. "
-                           f"Se mueven de posición para el catálogo.")
-            tag_log = "intercambio"
-        else:
-            hubo_cambio = False
-            explicacion = (f"Revisión {i+1}: El precio ${a} es menor o igual a ${b}. "
-                           f"Mantienen su orden actual.")
-            tag_log = "normal"
 
-        if j < limite_j:
+        if j < n - i - 2:
             self.j_interno += 1
         else:
             self.indices_ordenados.add(n - 1 - i)
-            self.j_interno  = 0
+            self.j_interno = 0
             self.i_externo += 1
             if self.i_externo > n - 2:
                 for k in range(n): self.indices_ordenados.add(k)
 
-        self._actualizar_explicacion(explicacion, hubo_cambio)
-        self._agregar_log(explicacion, tag_log)
-        self._dibujar_barras()
-        self._actualizar_contadores()
-        self.lbl_vector.config(text="Precios Actuales: " + str(self.vector))
+        # Solo actualizamos UI visual pesada si no son demasiados elementos o si es paso a paso
+        if n < 100 or not self.reproduciendo or self.total_comparaciones % 5 == 0:
+            self._dibujar_barras()
+            self._actualizar_contadores()
+            self.lbl_explicacion.config(text=f"Comparando indices {j} y {j+1}...")
 
         if len(self.indices_ordenados) == n:
             self._marcar_finalizado()
@@ -408,113 +276,88 @@ class BubbleSortSimulator:
     def _marcar_finalizado(self):
         self.finalizado = True
         self.reproduciendo = False
-        self.idx_comparando_1 = -1
-        self.idx_comparando_2 = -1
+        self.idx_comparando_1 = self.idx_comparando_2 = -1
         for k in range(self.n): self.indices_ordenados.add(k)
         self._dibujar_barras()
-        self._actualizar_explicacion(
-            f"✓ CATÁLOGO ORDENADO: Los precios están optimizados de menor a mayor.\n"
-            f"  Revisiones: {self.total_comparaciones} | Intercambios: {self.total_intercambios}",
-            es_exito=True)
-        self._agregar_log(f"✓ ÉXITO: Inventario ordenado correctamente.", "ordenado")
-        self.btn_auto.config(text="⏵ Auto-Organizar", bg="#2E4A3E", fg=COLORES["exito"])
+        self._actualizar_contadores()
+        self.lbl_explicacion.config(text="✓ ORDENAMIENTO COMPLETO", fg=COLORES["exito"])
+        self._agregar_log("Proceso finalizado con éxito.", "exito")
 
     def _toggle_auto(self):
         if self.finalizado: return
         self.reproduciendo = not self.reproduciendo
         if self.reproduciendo:
-            self.btn_auto.config(text="⏸ Detener", bg="#4A3E10", fg=COLORES["advertencia"])
+            self.btn_auto.config(text="⏸ Detener", bg="#4A3E10")
             self._ciclo_auto()
         else:
-            self.btn_auto.config(text="⏵ Auto-Organizar", bg="#2E4A3E", fg=COLORES["exito"])
-            if self._job_after: self.root.after_cancel(self._job_after)
+            self.btn_auto.config(text="⏵ Auto-Organizar", bg="#2E4A3E")
 
     def _ciclo_auto(self):
         if not self.reproduciendo or self.finalizado: return
         self._paso_siguiente()
-        if not self.finalizado:
-            delay_ms = 2100 - self.slider_velocidad.get()
-            self._job_after = self.root.after(delay_ms, self._ciclo_auto)
+        delay = max(1, 2001 - self.slider_velocidad.get())
+        self._job_after = self.root.after(delay, self._ciclo_auto)
 
     def _reiniciar(self):
         if self._job_after: self.root.after_cancel(self._job_after)
         self.vector = list(self.VECTOR_ORIGINAL)
-        self.i_externo = 0; self.j_interno = 0
-        self.total_comparaciones = 0; self.total_intercambios = 0
-        self.finalizado = False; self.reproduciendo = False
-        self.idx_comparando_1 = -1; self.idx_comparando_2 = -1
+        self.n = len(self.vector)
+        self.i_externo = self.j_interno = 0
+        self.total_comparaciones = self.total_intercambios = 0
+        self.finalizado = self.reproduciendo = False
         self.indices_ordenados = set()
-        self.btn_auto.config(text="⏵ Auto-Organizar", bg="#2E4A3E", fg=COLORES["exito"])
-        self.txt_log.config(state="normal"); self.txt_log.delete("1.0", "end"); self.txt_log.config(state="disabled")
-        self._dibujar_barras(); self._actualizar_contadores()
-        self.lbl_vector.config(text="Precios: " + str(self.vector))
-        self.lbl_explicacion.config(text="Precios restablecidos. Inicie el proceso de nuevo.", fg=COLORES["texto"])
-        self._agregar_log(f"↺ Inventario restablecido: {self.VECTOR_ORIGINAL}", "inicio")
+        self.idx_comparando_1 = self.idx_comparando_2 = -1
+        self.btn_auto.config(text="⏵ Auto-Organizar", bg="#2E4A3E")
+        self.lbl_vector.config(text=f"Elementos: {self.n}")
+        self._dibujar_barras()
+        self._actualizar_contadores()
 
-    # ──────────────────────────────────────────────────────────
-    #  RENDERIZADO DEL CANVAS (Contexto de precios)
-    # ──────────────────────────────────────────────────────────
     def _dibujar_barras(self):
         self.canvas.delete("all")
-        canvas_w = 556; canvas_h = 300; margen_x = 40; margen_inf = 40; margen_sup = 30
-        n = self.n; area_w = canvas_w - 2 * margen_x; hueco = 12
-        barra_w = (area_w - hueco * (n - 1)) / n
-        max_val = max(self.VECTOR_ORIGINAL) + 10
-        area_h = canvas_h - margen_inf - margen_sup
-
+        cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+        if cw < 10: cw = 600 # Fallback inicial
+        
+        n = self.n
+        margen_inf = 30
+        max_val = max(self.vector) if self.vector else 1
+        
+        # Ajuste dinámico de anchos
+        barra_w = cw / n
+        
         for idx, valor in enumerate(self.vector):
-            x1 = margen_x + idx * (barra_w + hueco)
+            x1 = idx * barra_w
             x2 = x1 + barra_w
-            altura = (valor / max_val) * area_h
-            y1 = canvas_h - margen_inf - altura; y2 = canvas_h - margen_inf
+            # Dejar un pequeño borde si hay pocos elementos
+            if n < 100: x2 -= 1
+            
+            altura = (valor / max_val) * (ch - margen_inf - 20)
+            y1 = ch - margen_inf - altura
+            y2 = ch - margen_inf
 
             if idx in self.indices_ordenados: color = COLORES["barra_ordenada"]
             elif idx == self.idx_comparando_1: color = COLORES["barra_comparar1"]
             elif idx == self.idx_comparando_2: color = COLORES["barra_comparar2"]
             else: color = COLORES["barra_normal"]
 
-            color_claro = self._aclarar_color(color, 0.18)
-            self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="", tags="barra")
-            self.canvas.create_rectangle(x1, y1, x1 + 3, y2, fill=color_claro, outline="", tags="brillo")
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="")
 
-            cx = (x1 + x2) / 2
-            # Se añade el símbolo de moneda para el caso real
-            self.canvas.create_text(cx, y1 + 18, text=f"${valor}", font=FUENTE_BARRA,
-                                    fill=COLORES["texto_numero"], tags="valor")
-            self.canvas.create_text(cx, canvas_h - margen_inf + 16, text=f"Prod {idx+1}",
-                                    font=FUENTE_NORMAL, fill=COLORES["texto_secundario"])
-
-        self.canvas.create_line(margen_x, canvas_h - margen_inf, canvas_w - margen_x,
-                                canvas_h - margen_inf, fill=COLORES["borde"], width=1)
-
-    @staticmethod
-    def _aclarar_color(hex_color: str, factor: float) -> str:
-        hex_color = hex_color.lstrip("#")
-        r, g, b = (int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        r = int(r + (255 - r) * factor); g = int(g + (255 - g) * factor); b = int(b + (255 - b) * factor)
-        return f"#{r:02X}{g:02X}{b:02X}"
+            # Solo dibujar texto si hay espacio suficiente (menos de 30 elementos)
+            if n <= 30:
+                cx = (x1 + x2) / 2
+                self.canvas.create_text(cx, y1 - 10, text=f"${valor}", font=("Arial", 7), fill=COLORES["texto"])
 
     def _actualizar_contadores(self):
-        pasada_mostrar = min(self.i_externo + 1, self.n - 1)
-        self.lbl_pasada.config(text=str(pasada_mostrar))
-        self.lbl_comparacion.config(text=str(self.j_interno + 1) if not self.finalizado else "—")
+        self.lbl_pasada.config(text=str(self.i_externo + 1))
         self.lbl_total_comp.config(text=str(self.total_comparaciones))
         self.lbl_total_int.config(text=str(self.total_intercambios))
 
-    def _actualizar_explicacion(self, texto: str, hubo_cambio: bool = False, es_exito: bool = False):
-        color = COLORES["exito"] if es_exito else (COLORES["error"] if hubo_cambio else COLORES["texto"])
-        self.lbl_explicacion.config(text=texto, fg=color)
-
-    def _agregar_log(self, texto: str, tag: str = "normal"):
+    def _agregar_log(self, texto, tag="normal"):
         self.txt_log.config(state="normal")
-        linea = f"[{len(self.log_pasos)+1:03d}]  {texto}\n"
-        self.txt_log.insert("end", linea, tag); self.txt_log.see("end"); self.txt_log.config(state="disabled")
-        self.log_pasos.append(texto)
-
-def main():
-    root = tk.Tk()
-    app  = BubbleSortSimulator(root)
-    root.mainloop()
+        self.txt_log.insert("end", f"[-] {texto}\n")
+        self.txt_log.see("end")
+        self.txt_log.config(state="disabled")
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = BubbleSortSimulator(root)
+    root.mainloop()
