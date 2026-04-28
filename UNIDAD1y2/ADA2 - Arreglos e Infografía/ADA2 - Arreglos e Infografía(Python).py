@@ -9,7 +9,7 @@ import time
 # ============================================================================
 # CONFIGURACIÓN - Modifica estos valores para cambiar las dimensiones
 # ============================================================================
-NUM_ALUMNOS = 100000
+NUM_ALUMNOS = 200000
 NUM_MATERIAS = 100
 
 
