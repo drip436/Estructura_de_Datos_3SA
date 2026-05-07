@@ -85,35 +85,49 @@ def leer_archivo(path):
             raise ValueError("No se encontraron números en el archivo CSV.")
         return numeros
 
-    elif ext == ".xlsx":
+    if ext == ".xlsx":
         try:
             import openpyxl
         except ImportError:
             raise ImportError("Instala openpyxl: pip install openpyxl")
-        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        
+        # Quitamos data_only=True si queremos ver fórmulas, 
+        # pero lo dejamos para obtener los valores calculados
+        wb = openpyxl.load_workbook(path, read_only=False, data_only=True)
         numeros = []
         hojas_leidas = []
+        tipos_conteo = {"Números": 0, "Texto": 0, "Booleanos": 0, "Otros": 0}
+        
         for nombre_hoja in wb.sheetnames:
             ws = wb[nombre_hoja]
             encontrados_en_hoja = 0
-            for row in ws.iter_rows(values_only=True):
+            for row in ws.iter_rows(): # Quitamos values_only para acceder al objeto cell
                 for cell in row:
-                    # Ignorar strings (encabezados), None y booleanos
-                    if cell is None or isinstance(cell, (bool, str)):
+                    # --- Identificación del tipo de dato ---
+                    t = cell.data_type
+                    if t == 'n': tipos_conteo["Números"] += 1
+                    elif t == 's': tipos_conteo["Texto"] += 1
+                    elif t == 'b': tipos_conteo["Booleanos"] += 1
+                    else: tipos_conteo["Otros"] += 1
+                    
+                    val = cell.value
+                    if val is None or isinstance(val, (bool, str)):
                         continue
-                    if isinstance(cell, (int, float)):
-                        numeros.append(float(cell))
+                    if isinstance(val, (int, float)):
+                        numeros.append(float(val))
                         encontrados_en_hoja += 1
+            
             if encontrados_en_hoja > 0:
                 hojas_leidas.append(f"{nombre_hoja} ({encontrados_en_hoja})")
+        
         wb.close()
         if not numeros:
-            raise ValueError(
-                "No se encontraron números en el archivo XLSX.\n"
-                f"Hojas encontradas: {', '.join(wb.sheetnames)}\n"
-                "Asegúrate de que las celdas contengan valores numéricos.")
-        # Guardar info de hojas para mostrar en UI
-        _xlsx_info[path] = ", ".join(hojas_leidas)
+            raise ValueError("No se encontraron números en el archivo XLSX.")
+        
+        # Guardar info extendida
+        resumen_tipos = f"N: {tipos_conteo['Números']}, T: {tipos_conteo['Texto']}, B: {tipos_conteo['Booleanos']}"
+        _xlsx_info[path] = f"{', '.join(hojas_leidas)} | Tipos -> {resumen_tipos}"
+        
         return numeros
 
     else:  # .txt
