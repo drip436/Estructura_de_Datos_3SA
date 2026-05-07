@@ -1,511 +1,526 @@
 """
-Visualizador de Métodos de Ordenamiento
-- Intercalación (Insertion Sort)
-- Mezcla Directa (Merge Sort iterativo)
-- Mezcla Equilibrada (Balanced Merge Sort)
-
-Desarrollado con Python + Tkinter
+Intercalación de Archivos
+--------------------------
+Carga 2 archivos (.txt o .json) con números desordenados,
+los une y los ordena usando Insertion Sort (Intercalación).
+Guarda el resultado en un nuevo archivo.
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import filedialog, messagebox, ttk
+import json
+import os
 import random
-import time
-import threading
 
-# ─────────────────────────────────────────────
-#  PALETA DE COLORES
-# ─────────────────────────────────────────────
-BG_DARK      = "#0f1117"
-BG_CARD      = "#1a1d27"
-BG_PANEL     = "#141720"
-ACCENT_BLUE  = "#4f8ef7"
-ACCENT_GREEN = "#3ecf8e"
-ACCENT_PINK  = "#f75f8e"
-ACCENT_GOLD  = "#f5c842"
-TEXT_MAIN    = "#e8eaf0"
-TEXT_MUTED   = "#7b8094"
-BAR_DEFAULT  = "#4f8ef7"
-BAR_ACTIVE   = "#f5c842"
-BAR_SORTED   = "#3ecf8e"
-BAR_COMPARE  = "#f75f8e"
+# ── Colores ──────────────────────────────────────────────
+BG        = "#0f1117"
+CARD      = "#1a1d27"
+PANEL     = "#141720"
+BLUE      = "#4f8ef7"
+GREEN     = "#3ecf8e"
+GOLD      = "#f5c842"
+PINK      = "#f75f8e"
+TEXT      = "#e8eaf0"
+MUTED     = "#7b8094"
+BAR_DEF   = "#4f8ef7"
+BAR_KEY   = "#f5c842"
+BAR_CMP   = "#f75f8e"
+BAR_DONE  = "#3ecf8e"
 
 
-# ─────────────────────────────────────────────
-#  ALGORITMOS
-# ─────────────────────────────────────────────
-
+# ── Insertion Sort con pasos ──────────────────────────────
 def insertion_sort_steps(arr):
-    """Genera pasos de Intercalación (Insertion Sort)."""
     a = arr[:]
     steps = []
     n = len(a)
     for i in range(1, n):
         key = a[i]
         j = i - 1
-        steps.append(("key", i, a[:], f"Clave: a[{i}]={key}"))
+        steps.append(("key", i, a[:], f"Clave tomada: a[{i}] = {key}"))
         while j >= 0 and a[j] > key:
-            steps.append(("compare", j, a[:], f"Comparando a[{j}]={a[j]} > {key}, desplazando"))
+            steps.append(("cmp", j, a[:], f"a[{j}]={a[j]} > {key} → desplazar"))
             a[j + 1] = a[j]
             j -= 1
-            steps.append(("move", j + 1, a[:], f"Desplazado → posición {j+2}"))
+            steps.append(("move", j + 1, a[:], f"Elemento desplazado a posición {j+2}"))
         a[j + 1] = key
         steps.append(("place", j + 1, a[:], f"Insertado {key} en posición {j+1}"))
     steps.append(("done", -1, a[:], "¡Ordenamiento completado!"))
     return steps
 
 
-def merge_sort_direct_steps(arr):
-    """Genera pasos de Mezcla Directa (bottom-up iterativo)."""
-    a = arr[:]
-    n = len(a)
-    steps = []
-    size = 1
-    while size < n:
-        steps.append(("info", -1, a[:], f"Tamaño de bloque: {size}"))
-        for left in range(0, n, size * 2):
-            mid   = min(left + size, n)
-            right = min(left + size * 2, n)
-            if mid >= right:
-                continue
-            L = a[left:mid]
-            R = a[mid:right]
-            steps.append(("merge_range", (left, mid, right), a[:],
-                          f"Mezclando [{left}..{mid-1}] con [{mid}..{right-1}]"))
-            i = j = 0
-            k = left
-            while i < len(L) and j < len(R):
-                steps.append(("compare", k, a[:],
-                              f"Comparando {L[i]} vs {R[j]}"))
-                if L[i] <= R[j]:
-                    a[k] = L[i]; i += 1
-                else:
-                    a[k] = R[j]; j += 1
-                steps.append(("place", k, a[:], f"Colocando {a[k]} en [{k}]"))
-                k += 1
-            while i < len(L):
-                a[k] = L[i]; i += 1; k += 1
-            while j < len(R):
-                a[k] = R[j]; j += 1; k += 1
-        size *= 2
-    steps.append(("done", -1, a[:], "¡Ordenamiento completado!"))
-    return steps
+# ── Lectura de archivos ───────────────────────────────────
+# Guarda info de hojas leídas por archivo xlsx
+_xlsx_info = {}
+
+def leer_archivo(path):
+    """Lee un .txt, .json, .csv o .xlsx y devuelve lista de números."""
+    ext = os.path.splitext(path)[1].lower()
+
+    if ext == ".json":
+        with open(path, "r", encoding="utf-8") as f:
+            datos = json.load(f)
+        if isinstance(datos, list):
+            return [float(x) for x in datos]
+        raise ValueError("El JSON debe contener una lista de números.\nEjemplo: [34, 7, 23, 90, 1]")
+
+    elif ext == ".csv":
+        import csv
+        numeros = []
+        with open(path, newline="", encoding="utf-8") as f:
+            # Detectar si tiene encabezado
+            sample = f.read(2048); f.seek(0)
+            has_header = csv.Sniffer().has_header(sample)
+            reader = csv.reader(f)
+            if has_header:
+                next(reader)   # saltar encabezado
+            for row in reader:
+                for cell in row:
+                    cell = cell.strip()
+                    if cell:
+                        try:
+                            numeros.append(float(cell))
+                        except ValueError:
+                            pass   # ignorar texto no numérico
+        if not numeros:
+            raise ValueError("No se encontraron números en el archivo CSV.")
+        return numeros
+
+    elif ext == ".xlsx":
+        try:
+            import openpyxl
+        except ImportError:
+            raise ImportError("Instala openpyxl: pip install openpyxl")
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        numeros = []
+        hojas_leidas = []
+        for nombre_hoja in wb.sheetnames:
+            ws = wb[nombre_hoja]
+            encontrados_en_hoja = 0
+            for row in ws.iter_rows(values_only=True):
+                for cell in row:
+                    # Ignorar strings (encabezados), None y booleanos
+                    if cell is None or isinstance(cell, (bool, str)):
+                        continue
+                    if isinstance(cell, (int, float)):
+                        numeros.append(float(cell))
+                        encontrados_en_hoja += 1
+            if encontrados_en_hoja > 0:
+                hojas_leidas.append(f"{nombre_hoja} ({encontrados_en_hoja})")
+        wb.close()
+        if not numeros:
+            raise ValueError(
+                "No se encontraron números en el archivo XLSX.\n"
+                f"Hojas encontradas: {', '.join(wb.sheetnames)}\n"
+                "Asegúrate de que las celdas contengan valores numéricos.")
+        # Guardar info de hojas para mostrar en UI
+        _xlsx_info[path] = ", ".join(hojas_leidas)
+        return numeros
+
+    else:  # .txt
+        import re
+        with open(path, "r", encoding="utf-8") as f:
+            contenido = f.read().strip()
+        tokens = re.split(r"[,\s\n]+", contenido)
+        numeros = []
+        for t in tokens:
+            if t:
+                try:
+                    numeros.append(float(t))
+                except ValueError:
+                    pass
+        if not numeros:
+            raise ValueError("No se encontraron números en el archivo TXT.")
+        return numeros
 
 
-def balanced_merge_steps(arr):
-    """Genera pasos de Mezcla Equilibrada (divide en 2 mitades recursivo visual)."""
-    a = arr[:]
-    steps = []
-
-    def merge(arr, left, mid, right):
-        L = arr[left:mid+1]
-        R = arr[mid+1:right+1]
-        steps.append(("merge_range", (left, mid+1, right+1), arr[:],
-                      f"Mezcla equilibrada [{left}..{mid}] ↔ [{mid+1}..{right}]"))
-        i = j = 0
-        k = left
-        while i < len(L) and j < len(R):
-            steps.append(("compare", k, arr[:], f"Comparando {L[i]} vs {R[j]}"))
-            if L[i] <= R[j]:
-                arr[k] = L[i]; i += 1
-            else:
-                arr[k] = R[j]; j += 1
-            steps.append(("place", k, arr[:], f"Colocando {arr[k]}"))
-            k += 1
-        while i < len(L):
-            arr[k] = L[i]; i += 1; k += 1
-        while j < len(R):
-            arr[k] = R[j]; j += 1; k += 1
-
-    def merge_sort_rec(arr, left, right, depth=0):
-        if left >= right:
-            return
-        mid = (left + right) // 2
-        steps.append(("split", (left, mid, right), arr[:],
-                      f"División (nivel {depth}): [{left}..{mid}] | [{mid+1}..{right}]"))
-        merge_sort_rec(arr, left, mid, depth+1)
-        merge_sort_rec(arr, mid+1, right, depth+1)
-        merge(arr, left, mid, right)
-
-    merge_sort_rec(a, 0, len(a)-1)
-    steps.append(("done", -1, a[:], "¡Ordenamiento completado!"))
-    return steps
+def guardar_archivo(path, datos):
+    ext = os.path.splitext(path)[1].lower()
+    with open(path, "w", encoding="utf-8") as f:
+        if ext == ".json":
+            json.dump([int(x) if x == int(x) else x for x in datos], f, indent=2)
+        else:
+            f.write(", ".join(str(int(x) if x == int(x) else x) for x in datos))
 
 
-# ─────────────────────────────────────────────
-#  WIDGET DE CANVAS PARA BARRAS
-# ─────────────────────────────────────────────
-
+# ── Canvas de barras ──────────────────────────────────────
 class BarCanvas(tk.Canvas):
     def __init__(self, master, **kw):
-        super().__init__(master, bg=BG_CARD, highlightthickness=0, **kw)
-        self.data        = []
-        self.highlights  = {}   # index -> color
-        self.range_hl    = None  # (left, right, color)
+        super().__init__(master, bg=CARD, highlightthickness=0, **kw)
+        self.data = []
+        self.hl   = {}
 
-    def set_data(self, data, highlights=None, range_hl=None):
-        self.data       = data
-        self.highlights = highlights or {}
-        self.range_hl   = range_hl
+    def set_data(self, data, hl=None):
+        self.data = data
+        self.hl   = hl or {}
         self.redraw()
 
     def redraw(self):
         self.delete("all")
         if not self.data:
             return
-        w = self.winfo_width()  or 600
-        h = self.winfo_height() or 220
+        w = self.winfo_width()  or 700
+        h = self.winfo_height() or 180
         n = len(self.data)
-        max_val  = max(self.data) if self.data else 1
-        pad_x    = 10
-        bar_w    = max(2, (w - 2*pad_x) / n - 1)
-        gap      = 1
-
-        # Range highlight background
-        if self.range_hl:
-            lft, rgt, rc = self.range_hl
-            x0 = pad_x + lft * (bar_w + gap)
-            x1 = pad_x + rgt * (bar_w + gap)
-            self.create_rectangle(x0-2, 0, x1+bar_w+2, h, fill="#2a2d3a", outline="")
+        max_v  = max(self.data) if self.data else 1
+        pad    = 10
+        bar_w  = max(2, (w - 2*pad) / n - 1)
 
         for i, val in enumerate(self.data):
-            x0 = pad_x + i * (bar_w + gap)
+            x0 = pad + i * (bar_w + 1)
             x1 = x0 + bar_w
-            bar_h = max(4, int((val / max_val) * (h - 30)))
-            y0 = h - bar_h - 10
+            bh = max(4, int((val / max_v) * (h - 28)))
+            y0 = h - bh - 10
             y1 = h - 10
-            color = self.highlights.get(i, BAR_DEFAULT)
-            # Shadow
-            self.create_rectangle(x0+2, y0+2, x1+2, y1+2,
-                                   fill="#0a0c12", outline="")
-            # Bar
-            self.create_rectangle(x0, y0, x1, y1,
-                                   fill=color, outline="", width=0)
-            # Top glow line
-            self.create_line(x0, y0, x1, y0, fill=color, width=2)
-
-            # Value label (only if bars are wide enough)
-            if bar_w >= 18:
-                self.create_text((x0+x1)//2, y0-6, text=str(val),
-                                  fill=TEXT_MUTED, font=("Consolas", 7))
+            color = self.hl.get(i, BAR_DEF)
+            self.create_rectangle(x0+2, y0+2, x1+2, y1+2, fill="#0a0c12", outline="")
+            self.create_rectangle(x0, y0, x1, y1, fill=color, outline="")
+            if bar_w >= 20:
+                self.create_text((x0+x1)//2, y0-7, text=str(int(val)),
+                                  fill=MUTED, font=("Consolas", 7))
 
 
-# ─────────────────────────────────────────────
-#  PANEL DE UN ALGORITMO
-# ─────────────────────────────────────────────
-
-class AlgoPanel(tk.Frame):
-    def __init__(self, master, title, color, algo_func, data_getter, **kw):
-        super().__init__(master, bg=BG_CARD, **kw)
-        self.algo_func   = algo_func
-        self.data_getter = data_getter
-        self.steps       = []
-        self.step_idx    = 0
-        self.running     = False
-        self.speed       = 100   # ms per step
-        self._after_id   = None
-        self.accent      = color
-
-        self._build_ui(title, color)
-
-    def _build_ui(self, title, color):
-        # Header
-        hdr = tk.Frame(self, bg=color, height=4)
-        hdr.pack(fill="x")
-
-        title_bar = tk.Frame(self, bg=BG_PANEL)
-        title_bar.pack(fill="x", padx=0, pady=0)
-
-        tk.Label(title_bar, text=title, bg=BG_PANEL, fg=TEXT_MAIN,
-                 font=("Consolas", 11, "bold")).pack(side="left", padx=12, pady=8)
-
-        # Step counter
-        self.step_lbl = tk.Label(title_bar, text="Paso 0/0", bg=BG_PANEL,
-                                  fg=TEXT_MUTED, font=("Consolas", 9))
-        self.step_lbl.pack(side="right", padx=12)
-
-        # Canvas
-        self.canvas = BarCanvas(self, width=380, height=200)
-        self.canvas.pack(fill="both", expand=True, padx=8, pady=(4,0))
-
-        # Status message
-        self.msg_lbl = tk.Label(self, text="Presiona ▶ para iniciar",
-                                 bg=BG_CARD, fg=TEXT_MUTED,
-                                 font=("Consolas", 9), anchor="w")
-        self.msg_lbl.pack(fill="x", padx=12, pady=3)
-
-        # Controls
-        ctrl = tk.Frame(self, bg=BG_CARD)
-        ctrl.pack(fill="x", padx=8, pady=(0,8))
-
-        btn_cfg = dict(bg=BG_PANEL, fg=TEXT_MAIN, relief="flat",
-                       font=("Consolas", 10), cursor="hand2",
-                       activebackground="#252836", activeforeground=TEXT_MAIN,
-                       padx=8, pady=4)
-
-        self.btn_start = tk.Button(ctrl, text="▶ Iniciar", command=self.start, **btn_cfg)
-        self.btn_start.pack(side="left", padx=2)
-
-        self.btn_pause = tk.Button(ctrl, text="⏸ Pausa", command=self.pause,
-                                    state="disabled", **btn_cfg)
-        self.btn_pause.pack(side="left", padx=2)
-
-        self.btn_step = tk.Button(ctrl, text="→ Paso", command=self.single_step, **btn_cfg)
-        self.btn_step.pack(side="left", padx=2)
-
-        self.btn_reset = tk.Button(ctrl, text="↺ Reset", command=self.reset, **btn_cfg)
-        self.btn_reset.pack(side="left", padx=2)
-
-        # Speed slider
-        tk.Label(ctrl, text="Vel:", bg=BG_CARD, fg=TEXT_MUTED,
-                 font=("Consolas", 8)).pack(side="left", padx=(10,2))
-        self.speed_var = tk.IntVar(value=5)
-        spd = ttk.Scale(ctrl, from_=1, to=10, variable=self.speed_var,
-                        orient="horizontal", length=70,
-                        command=lambda v: self._update_speed())
-        spd.pack(side="left")
-
-        # Progress bar
-        self.progress = ttk.Progressbar(self, orient="horizontal",
-                                         mode="determinate", length=100)
-        self.progress.pack(fill="x", padx=8, pady=(0,6))
-
-    def _update_speed(self):
-        val = self.speed_var.get()
-        self.speed = int(550 - val * 50)   # 500ms (slow) → 50ms (fast)
-
-    def prepare(self):
-        """Genera pasos con los datos actuales."""
-        data = self.data_getter()
-        self.steps    = self.algo_func(data)
-        self.step_idx = 0
-        self.progress["maximum"] = max(len(self.steps), 1)
-        self.canvas.set_data(data)
-        self.step_lbl.config(text=f"Paso 0/{len(self.steps)}")
-        self.msg_lbl.config(text="Listo. Presiona ▶ para iniciar.")
-
-    def _render_step(self):
-        if self.step_idx >= len(self.steps):
-            return
-        kind, idx, arr, msg = self.steps[self.step_idx]
-        hl    = {}
-        range_hl = None
-
-        if kind == "key":
-            hl = {idx: ACCENT_GOLD}
-        elif kind == "compare":
-            hl = {idx: BAR_COMPARE}
-        elif kind in ("move", "place"):
-            hl = {idx: ACCENT_PINK}
-        elif kind == "merge_range":
-            lft, mid, rgt = idx
-            range_hl = (lft, rgt, "#2a2d3a")
-            for i in range(lft, rgt):
-                hl[i] = ACCENT_BLUE
-        elif kind == "split":
-            lft, mid, rgt = idx
-            for i in range(lft, mid+1):
-                hl[i] = ACCENT_BLUE
-            for i in range(mid+1, rgt+1):
-                hl[i] = ACCENT_PINK
-        elif kind == "done":
-            for i in range(len(arr)):
-                hl[i] = BAR_SORTED
-
-        self.canvas.set_data(arr, hl, range_hl)
-        self.msg_lbl.config(text=msg)
-        self.step_lbl.config(text=f"Paso {self.step_idx+1}/{len(self.steps)}")
-        self.progress["value"] = self.step_idx + 1
-
-    def _auto_run(self):
-        if not self.running:
-            return
-        if self.step_idx < len(self.steps):
-            self._render_step()
-            self.step_idx += 1
-            self._after_id = self.after(self.speed, self._auto_run)
-        else:
-            self.running = False
-            self.btn_start.config(state="disabled")
-            self.btn_pause.config(state="disabled")
-
-    def start(self):
-        if not self.steps:
-            self.prepare()
-        if self.step_idx >= len(self.steps):
-            return
-        self.running = True
-        self.btn_pause.config(state="normal")
-        self.btn_start.config(state="disabled")
-        self._auto_run()
-
-    def pause(self):
-        self.running = False
-        if self._after_id:
-            self.after_cancel(self._after_id)
-        self.btn_start.config(state="normal", text="▶ Continuar")
-        self.btn_pause.config(state="disabled")
-
-    def single_step(self):
-        if not self.steps:
-            self.prepare()
-        if self.step_idx < len(self.steps):
-            self._render_step()
-            self.step_idx += 1
-
-    def reset(self):
-        self.running = False
-        if self._after_id:
-            self.after_cancel(self._after_id)
-        self.steps    = []
-        self.step_idx = 0
-        self.progress["value"] = 0
-        self.btn_start.config(state="normal", text="▶ Iniciar")
-        self.btn_pause.config(state="disabled")
-        self.prepare()
-
-
-# ─────────────────────────────────────────────
-#  VENTANA PRINCIPAL
-# ─────────────────────────────────────────────
-
-class SortingApp(tk.Tk):
+# ── Aplicación principal ──────────────────────────────────
+class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Visualizador de Ordenamiento — Intercalación · Mezcla Directa · Mezcla Equilibrada")
-        self.configure(bg=BG_DARK)
+        self.title("Intercalación de Archivos — Insertion Sort")
+        self.configure(bg=BG)
+        self.geometry("860x680")
         self.resizable(True, True)
-        self.geometry("1220x700")
 
-        self._data = self._new_data(20)
-        self._build_ui()
-        self._init_panels()
+        self.file1  = tk.StringVar(value="Sin archivo")
+        self.file2  = tk.StringVar(value="Sin archivo")
+        self.data1  = []
+        self.data2  = []
+        self.merged = []
+        self.steps  = []
+        self.idx    = 0
+        self.running = False
+        self._after  = None
+        self.speed   = 80
 
-        # Style
+        self._build()
+
         style = ttk.Style(self)
         style.theme_use("clam")
         style.configure("Horizontal.TProgressbar",
-                         background=ACCENT_BLUE, troughcolor=BG_PANEL,
-                         borderwidth=0, thickness=4)
-        style.configure("Horizontal.TScale",
-                         background=BG_CARD, troughcolor=BG_PANEL,
-                         sliderlength=14)
+                         background=BLUE, troughcolor=PANEL,
+                         borderwidth=0, thickness=5)
 
-    # ── data helpers ──
-    def _new_data(self, n=20):
-        return random.sample(range(5, 100), min(n, 95))
+    # ── Construcción de la UI ─────────────────────────────
+    def _build(self):
+        # Título
+        tk.Label(self, text="Intercalación de Archivos",
+                 bg=BG, fg=TEXT, font=("Consolas", 15, "bold")).pack(pady=(14,2))
+        tk.Label(self, text="Carga 2 archivos · Únelos · Ordénalos con Insertion Sort · Guarda el resultado",
+                 bg=BG, fg=MUTED, font=("Consolas", 9)).pack(pady=(0,10))
 
-    def _get_data(self):
-        return self._data[:]
+        # ── Sección de carga ──
+        load_frame = tk.Frame(self, bg=CARD, padx=12, pady=10)
+        load_frame.pack(fill="x", padx=16, pady=(0,8))
 
-    # ── UI ──
-    def _build_ui(self):
-        # ── Top bar ──
-        top = tk.Frame(self, bg=BG_DARK)
-        top.pack(fill="x", padx=16, pady=(14, 0))
+        for col, (label, var, cmd) in enumerate([
+            ("Archivo 1", self.file1, self._cargar1),
+            ("Archivo 2", self.file2, self._cargar2),
+        ]):
+            f = tk.Frame(load_frame, bg=CARD)
+            f.grid(row=0, column=col, sticky="ew", padx=8)
+            load_frame.columnconfigure(col, weight=1)
 
-        tk.Label(top, text="⚙  Visualizador de Métodos de Ordenamiento",
-                 bg=BG_DARK, fg=TEXT_MAIN,
-                 font=("Consolas", 15, "bold")).pack(side="left")
+            tk.Label(f, text=label, bg=CARD, fg=MUTED,
+                     font=("Consolas", 9)).pack(anchor="w")
+            row = tk.Frame(f, bg=CARD)
+            row.pack(fill="x")
+            tk.Label(row, textvariable=var, bg=PANEL, fg=TEXT,
+                     font=("Consolas", 9), anchor="w", padx=6,
+                     relief="flat", width=32).pack(side="left", fill="x", expand=True)
+            tk.Button(row, text="📂 Abrir", command=cmd,
+                      bg=BLUE, fg="#fff", relief="flat",
+                      font=("Consolas", 9), cursor="hand2",
+                      activebackground="#3a7be0", padx=8, pady=3).pack(side="left", padx=4)
 
-        # Controls
-        ctrl = tk.Frame(top, bg=BG_DARK)
-        ctrl.pack(side="right")
+        # Botón generar archivos de prueba
+        tk.Button(load_frame, text="🎲 Generar archivos de prueba",
+                  command=self._generar_prueba,
+                  bg=PANEL, fg=MUTED, relief="flat",
+                  font=("Consolas", 9), cursor="hand2",
+                  padx=8, pady=3).grid(row=1, column=0, columnspan=2,
+                                        sticky="w", padx=8, pady=(8,0))
 
-        tk.Label(ctrl, text="Elementos:", bg=BG_DARK, fg=TEXT_MUTED,
-                 font=("Consolas", 9)).pack(side="left", padx=4)
-        self.n_var = tk.IntVar(value=20)
-        n_spin = tk.Spinbox(ctrl, from_=5, to=50, textvariable=self.n_var,
-                             width=4, bg=BG_PANEL, fg=TEXT_MAIN,
-                             buttonbackground=BG_PANEL,
-                             relief="flat", font=("Consolas", 10))
-        n_spin.pack(side="left", padx=4)
+        # ── Vista previa de datos ──
+        prev = tk.Frame(self, bg=CARD, padx=12, pady=8)
+        prev.pack(fill="x", padx=16, pady=(0,6))
+        prev.columnconfigure((0,1,2), weight=1)
 
-        btn_cfg = dict(bg=ACCENT_BLUE, fg="#fff", relief="flat",
-                       font=("Consolas", 10, "bold"), cursor="hand2",
-                       activebackground="#3a7be0", activeforeground="#fff",
-                       padx=10, pady=5)
+        for col, (label, color, attr) in enumerate([
+            ("Archivo 1", BLUE,  "lbl_d1"),
+            ("Archivo 2", PINK,  "lbl_d2"),
+            ("Unión",     GOLD,  "lbl_mg"),
+        ]):
+            f = tk.Frame(prev, bg=CARD)
+            f.grid(row=0, column=col, sticky="ew", padx=6)
+            tk.Frame(f, bg=color, height=3).pack(fill="x")
+            tk.Label(f, text=label, bg=CARD, fg=color,
+                     font=("Consolas", 9, "bold")).pack(anchor="w", pady=2)
+            lbl = tk.Label(f, text="—", bg=PANEL, fg=TEXT,
+                            font=("Consolas", 8), anchor="w",
+                            wraplength=230, justify="left", padx=4)
+            lbl.pack(fill="x")
+            setattr(self, attr, lbl)
 
-        tk.Button(ctrl, text="🔀 Nuevo arreglo", command=self._shuffle,
-                  **btn_cfg).pack(side="left", padx=6)
+        # ── Canvas de visualización ──
+        tk.Label(self, text="Visualización del ordenamiento",
+                 bg=BG, fg=MUTED, font=("Consolas", 9)).pack(anchor="w", padx=16)
 
-        tk.Button(ctrl, text="▶▶ Iniciar Todo", command=self._start_all,
-                  bg=ACCENT_GREEN, fg="#fff", relief="flat",
-                  font=("Consolas", 10, "bold"), cursor="hand2",
-                  activebackground="#2eb87a", activeforeground="#fff",
-                  padx=10, pady=5).pack(side="left", padx=2)
+        self.canvas = BarCanvas(self, width=820, height=190)
+        self.canvas.pack(fill="x", padx=16, pady=(2,0))
 
-        tk.Button(ctrl, text="↺ Reset Todo", command=self._reset_all,
-                  bg=BG_PANEL, fg=TEXT_MUTED, relief="flat",
-                  font=("Consolas", 10), cursor="hand2",
-                  activebackground="#252836", activeforeground=TEXT_MAIN,
-                  padx=10, pady=5).pack(side="left", padx=2)
+        # Mensaje de estado
+        self.msg = tk.Label(self, text="Carga 2 archivos para comenzar.",
+                             bg=BG, fg=MUTED, font=("Consolas", 9), anchor="w")
+        self.msg.pack(fill="x", padx=16, pady=2)
 
-        # Separator
-        sep = tk.Frame(self, bg="#252836", height=1)
-        sep.pack(fill="x", padx=16, pady=10)
+        # Progreso
+        self.progress = ttk.Progressbar(self, orient="horizontal", mode="determinate")
+        self.progress.pack(fill="x", padx=16, pady=(0,4))
 
-        # Legend
-        legend = tk.Frame(self, bg=BG_DARK)
-        legend.pack(fill="x", padx=16, pady=(0, 8))
-        for color, label in [
-            (BAR_DEFAULT,  "Normal"),
-            (BAR_ACTIVE,   "Elemento clave"),
-            (BAR_COMPARE,  "Comparando"),
-            (ACCENT_PINK,  "Moviendo"),
-            (BAR_SORTED,   "Ordenado"),
-            (ACCENT_BLUE,  "Rango activo"),
-        ]:
-            dot = tk.Frame(legend, bg=color, width=12, height=12)
-            dot.pack(side="left", padx=(8,2), pady=2)
-            tk.Label(legend, text=label, bg=BG_DARK, fg=TEXT_MUTED,
+        # ── Controles ──
+        ctrl = tk.Frame(self, bg=BG)
+        ctrl.pack(fill="x", padx=16, pady=4)
+
+        btn = dict(bg=PANEL, fg=TEXT, relief="flat", font=("Consolas", 10),
+                   cursor="hand2", activebackground="#252836",
+                   activeforeground=TEXT, padx=10, pady=5)
+
+        self.btn_sort  = tk.Button(ctrl, text="▶ Ordenar", command=self._iniciar, **btn)
+        self.btn_sort.pack(side="left", padx=2)
+        self.btn_sort.config(bg=BLUE, fg="#fff", activebackground="#3a7be0")
+
+        self.btn_pause = tk.Button(ctrl, text="⏸ Pausa", command=self._pausar,
+                                    state="disabled", **btn)
+        self.btn_pause.pack(side="left", padx=2)
+
+        self.btn_step  = tk.Button(ctrl, text="→ Paso", command=self._paso, **btn)
+        self.btn_step.pack(side="left", padx=2)
+
+        self.btn_reset = tk.Button(ctrl, text="↺ Reset", command=self._reset, **btn)
+        self.btn_reset.pack(side="left", padx=2)
+
+        tk.Label(ctrl, text="Velocidad:", bg=BG, fg=MUTED,
+                 font=("Consolas", 9)).pack(side="left", padx=(14,2))
+        self.spd_var = tk.IntVar(value=6)
+        ttk.Scale(ctrl, from_=1, to=10, variable=self.spd_var,
+                  orient="horizontal", length=80,
+                  command=lambda v: self._upd_speed()).pack(side="left")
+
+        # ── Botón guardar ──
+        self.btn_save = tk.Button(self, text="💾  Guardar archivo ordenado",
+                                   command=self._guardar,
+                                   bg=GREEN, fg="#fff", relief="flat",
+                                   font=("Consolas", 10, "bold"), cursor="hand2",
+                                   activebackground="#2eb87a", pady=7,
+                                   state="disabled")
+        self.btn_save.pack(fill="x", padx=16, pady=(6,2))
+
+        # ── Leyenda ──
+        leg = tk.Frame(self, bg=BG)
+        leg.pack(fill="x", padx=16, pady=(4,12))
+        for color, label in [(BAR_DEF,"Normal"),(BAR_KEY,"Clave"),
+                              (BAR_CMP,"Comparando"),(PINK,"Moviendo"),(BAR_DONE,"Ordenado")]:
+            tk.Frame(leg, bg=color, width=12, height=12).pack(side="left", padx=(6,2))
+            tk.Label(leg, text=label, bg=BG, fg=MUTED,
                      font=("Consolas", 8)).pack(side="left", padx=(0,6))
 
-        # Panels container
-        self.panels_frame = tk.Frame(self, bg=BG_DARK)
-        self.panels_frame.pack(fill="both", expand=True, padx=16, pady=(0,12))
-        self.panels_frame.columnconfigure((0,1,2), weight=1, uniform="col")
-        self.panels_frame.rowconfigure(0, weight=1)
+    # ── Helpers ──────────────────────────────────────────
+    def _upd_speed(self):
+        self.speed = int(550 - self.spd_var.get() * 50)
 
-    def _init_panels(self):
-        infos = [
-            ("🔢  Intercalación\n(Insertion Sort)",  ACCENT_BLUE,  insertion_sort_steps),
-            ("🔀  Mezcla Directa\n(Direct Merge)",    ACCENT_PINK,  merge_sort_direct_steps),
-            ("⚖  Mezcla Equilibrada\n(Balanced Merge)", ACCENT_GREEN, balanced_merge_steps),
-        ]
-        self.panels = []
-        for col, (title, color, func) in enumerate(infos):
-            p = AlgoPanel(self.panels_frame, title, color, func,
-                          self._get_data, bd=0, relief="flat")
-            p.grid(row=0, column=col, sticky="nsew", padx=6)
-            self.panels.append(p)
+    def _fmt(self, lst):
+        s = ", ".join(str(int(x) if x == int(x) else x) for x in lst[:20])
+        return s + (f"  … (+{len(lst)-20} más)" if len(lst) > 20 else "")
 
-        # Wait for geometry, then prepare
-        self.after(200, self._prepare_all)
+    # ── Carga de archivos ─────────────────────────────────
+    def _cargar(self, num):
+        path = filedialog.askopenfilename(
+            title=f"Selecciona Archivo {num}",
+            filetypes=[
+                ("Todos los soportados", "*.txt *.json *.csv *.xlsx"),
+                ("Texto plano",          "*.txt"),
+                ("JSON",                 "*.json"),
+                ("CSV",                  "*.csv"),
+                ("Excel",                "*.xlsx"),
+            ])
+        if not path:
+            return
+        try:
+            datos = leer_archivo(path)
+            if num == 1:
+                self.data1 = datos
+                self.file1.set(os.path.basename(path))
+                self.lbl_d1.config(text=self._fmt(datos))
+            else:
+                self.data2 = datos
+                self.file2.set(os.path.basename(path))
+                self.lbl_d2.config(text=self._fmt(datos))
+            # Mostrar info de hojas si es xlsx
+            ext = os.path.splitext(path)[1].lower()
+            if ext == ".xlsx" and path in _xlsx_info:
+                info = _xlsx_info[path]
+                if num == 1:
+                    self.lbl_d1.config(text=f"[Hojas: {info}]\n{self._fmt(datos)}")
+                else:
+                    self.lbl_d2.config(text=f"[Hojas: {info}]\n{self._fmt(datos)}")
+            self._actualizar_union()
+        except Exception as e:
+            messagebox.showerror("Error al leer archivo", str(e))
 
-    def _prepare_all(self):
-        for p in self.panels:
-            p.prepare()
+    def _cargar1(self): self._cargar(1)
+    def _cargar2(self): self._cargar(2)
 
-    def _shuffle(self):
-        n = self.n_var.get()
-        self._data = self._new_data(n)
-        for p in self.panels:
-            p.reset()
+    def _actualizar_union(self):
+        if self.data1 or self.data2:
+            self.merged = self.data1 + self.data2
+            self.lbl_mg.config(text=self._fmt(self.merged))
+            self.canvas.set_data(self.merged)
+            self.msg.config(text=f"Unión: {len(self.merged)} elementos listos para ordenar.")
 
-    def _start_all(self):
-        for p in self.panels:
-            p.start()
+    # ── Generar archivos de prueba ────────────────────────
+    def _generar_prueba(self):
+        d = filedialog.askdirectory(title="Elige carpeta para guardar archivos de prueba")
+        if not d:
+            return
+        import csv as _csv
+        import openpyxl as _xl
+        nums = [random.sample(range(1, 300), 15) for _ in range(4)]
+        # .txt
+        p1 = os.path.join(d, "prueba1.txt")
+        with open(p1, "w") as f:
+            f.write(", ".join(map(str, nums[0])))
+        # .json
+        p2 = os.path.join(d, "prueba2.json")
+        with open(p2, "w") as f:
+            json.dump(nums[1], f)
+        # .csv con encabezado
+        p3 = os.path.join(d, "prueba3.csv")
+        with open(p3, "w", newline="") as f:
+            w = _csv.writer(f)
+            w.writerow(["numero"])
+            for n in nums[2]:
+                w.writerow([n])
+        # .xlsx con 3 hojas (para demostrar lectura multi-hoja)
+        p4 = os.path.join(d, "prueba4.xlsx")
+        wb = _xl.Workbook()
+        for idx_h, nombre_h in enumerate(["Hoja1", "Hoja2", "Hoja3"]):
+            if idx_h == 0:
+                ws = wb.active
+                ws.title = nombre_h
+            else:
+                ws = wb.create_sheet(nombre_h)
+            ws.append(["numero"])
+            extra = random.sample(range(1, 300), 5)
+            for n in extra:
+                ws.append([n])
+        wb.save(p4)
+        messagebox.showinfo("Archivos creados",
+            f"Se crearon 4 archivos en:\n{d}\n\n"
+            "  prueba1.txt\n  prueba2.json\n  prueba3.csv\n  prueba4.xlsx\n\n"
+            "Cárgalos con los botones 📂")
 
-    def _reset_all(self):
-        for p in self.panels:
-            p.reset()
+    # ── Ordenamiento ─────────────────────────────────────
+    def _iniciar(self):
+        if not self.merged:
+            messagebox.showwarning("Sin datos", "Carga al menos un archivo primero.")
+            return
+        if not self.steps:
+            self.steps = insertion_sort_steps(self.merged)
+            self.idx   = 0
+            self.progress["maximum"] = len(self.steps)
+        self.running = True
+        self.btn_pause.config(state="normal")
+        self.btn_sort.config(state="disabled")
+        self._auto()
+
+    def _auto(self):
+        if not self.running:
+            return
+        if self.idx < len(self.steps):
+            self._render()
+            self.idx += 1
+            self._after = self.after(self.speed, self._auto)
+        else:
+            self.running = False
+            self.btn_save.config(state="normal")
+            self.btn_pause.config(state="disabled")
+
+    def _render(self):
+        if self.idx >= len(self.steps):
+            return
+        kind, pos, arr, msg = self.steps[self.idx]
+        hl = {}
+        if kind == "key":
+            hl = {pos: BAR_KEY}
+        elif kind == "cmp":
+            hl = {pos: BAR_CMP}
+        elif kind in ("move", "place"):
+            hl = {pos: PINK}
+        elif kind == "done":
+            hl = {i: BAR_DONE for i in range(len(arr))}
+        self.canvas.set_data(arr, hl)
+        self.msg.config(text=msg)
+        self.progress["value"] = self.idx + 1
+
+    def _pausar(self):
+        self.running = False
+        if self._after:
+            self.after_cancel(self._after)
+        self.btn_sort.config(state="normal", text="▶ Continuar")
+        self.btn_pause.config(state="disabled")
+
+    def _paso(self):
+        if not self.merged:
+            return
+        if not self.steps:
+            self.steps = insertion_sort_steps(self.merged)
+            self.idx   = 0
+            self.progress["maximum"] = len(self.steps)
+        if self.idx < len(self.steps):
+            self._render()
+            self.idx += 1
+
+    def _reset(self):
+        self.running = False
+        if self._after:
+            self.after_cancel(self._after)
+        self.steps = []
+        self.idx   = 0
+        self.progress["value"] = 0
+        self.btn_sort.config(state="normal", text="▶ Ordenar")
+        self.btn_pause.config(state="disabled")
+        self.btn_save.config(state="disabled")
+        self._actualizar_union()
+        self.msg.config(text="Reset. Presiona ▶ Ordenar para volver a empezar.")
+
+    # ── Guardar resultado ─────────────────────────────────
+    def _guardar(self):
+        if not self.steps:
+            return
+        # El arreglo final está en el último paso
+        _, _, resultado, _ = self.steps[-1]
+        path = filedialog.asksaveasfilename(
+            title="Guardar archivo ordenado",
+            defaultextension=".txt",
+            filetypes=[("Texto", "*.txt"), ("JSON", "*.json")])
+        if not path:
+            return
+        try:
+            guardar_archivo(path, resultado)
+            messagebox.showinfo("Guardado",
+                                 f"Archivo guardado exitosamente:\n{path}\n\n"
+                                 f"{len(resultado)} elementos ordenados.")
+        except Exception as e:
+            messagebox.showerror("Error al guardar", str(e))
 
 
-# ─────────────────────────────────────────────
-#  ENTRADA
-# ─────────────────────────────────────────────
-
+# ── Entry point ───────────────────────────────────────────
 if __name__ == "__main__":
-    app = SortingApp()
-    app.mainloop()
+    App().mainloop()
