@@ -14,15 +14,16 @@ class SortAlgorithms:
         return arr
 
     @staticmethod
-    def insertion_sort(arr, callback = None):
-        for i in range(len(arr)):
-                    min_idx = i
-                    for j in range(i + 1, len(arr)):
-                        if callback: callback(arr, {j: "yellow", min_idx: "red"})
-                        if arr[min_idx] > arr[j]:
-                            min_idx = j
-                    arr[i], arr[min_idx] = arr[min_idx], arr[i]
-                    if callback: callback(arr, {i: "green"})
+    def insertion_sort(arr, callback=None):
+        for i in range(1, len(arr)):
+            key = arr[i]
+            j = i - 1
+            while j >= 0 and arr[j] > key:
+                arr[j + 1] = arr[j]
+                j -= 1
+                if callback: callback(arr, {j + 1: "red", i: "yellow"})
+            arr[j + 1] = key
+            if callback: callback(arr, {j + 1: "green"})
         return arr
 
     @staticmethod
@@ -116,5 +117,6 @@ if __name__ == "__main__":
     print(f"Original: {data}")
     
     # Ejemplo con Quicksort
-    sorted_data = SortAlgorithms.quicksort(data.copy())
+    sorted_data = data.copy()
+    SortAlgorithms.quicksort(sorted_data, 0, len(sorted_data) - 1)
     print(f"Ordenado (Quicksort): {sorted_data}")
